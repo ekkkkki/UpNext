@@ -101,6 +101,31 @@ enum RenderShots {
             m.setPreviewAgenda(sampleHitsEN())
         }
 
+        // First-run onboarding (English).
+        L10n.override = .en
+        do {
+            let view = OnboardingView(eventKit: eventKit, shortcutDisplay: "⇧⌘A", onDone: {})
+            let content = ShotContainer(height: 640) {
+                view.background(Color(nsColor: .windowBackgroundColor))
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .shadow(color: .black.opacity(0.5), radius: 30, y: 14)
+            }.preferredColorScheme(.dark)
+            let hc = NSHostingController(rootView: content)
+            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 860, height: 640),
+                               styleMask: [.borderless], backing: .buffered, defer: false)
+            win.appearance = NSAppearance(named: .darkAqua)
+            win.contentViewController = hc
+            hc.view.frame = NSRect(x: 0, y: 0, width: 860, height: 640)
+            win.layoutIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.35))
+            if let data = snapshot(hc.view) {
+                try? data.write(to: URL(fileURLWithPath: outDir).appendingPathComponent("onboarding.png"))
+                count += 1
+                print("  ✓ onboarding.png")
+            }
+            win.close()
+        }
+
         // Chinese set for the 中文 landing page.
         L10n.override = .zh
         shot("hero-zh") { m in

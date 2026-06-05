@@ -89,9 +89,13 @@ Open `QuickAdd.dmg`, drag **QuickAdd** to **Applications**. Because the app is a
 
 ## Permissions
 
-On first launch QuickAdd asks for **Reminders** and **Calendar** access. Both are needed to save
-items. You can re-check or re-grant under **Settings… ▸ Access** (in the menu-bar menu), or in
-**System Settings ▸ Privacy & Security**.
+On first launch QuickAdd shows a short welcome and asks for **Reminders** and **Calendar** access.
+Both are needed to save items. You can re-check or re-grant under **Settings… ▸ Access** (in the
+menu-bar menu), or in **System Settings ▸ Privacy & Security**.
+
+<img src="docs/shots/onboarding.png" width="420" alt="QuickAdd first-run welcome">
+
+The quick-add hot key is **⇧⌘A** by default and can be changed in Settings.
 
 ---
 

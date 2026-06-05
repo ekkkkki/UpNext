@@ -6,6 +6,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private lazy var model = PanelModel(eventKit: eventKit)
     private lazy var panelController = PanelController(model: model, eventKit: eventKit)
     private lazy var settingsController = SettingsWindowController(eventKit: eventKit)
+    private lazy var onboardingController = OnboardingWindowController(eventKit: eventKit) { [weak self] in
+        UserDefaults.standard.set(true, forKey: "hasOnboarded")
+        self?.panelController.show(mode: .add)
+    }
     private let hotKey = HotKeyManager()
     private var statusItem: NSStatusItem?
     private weak var shortcutHintItem: NSMenuItem?
@@ -52,8 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return
         }
 
-        // Prompt for access at launch so consent dialogs don't interrupt the panel later.
-        Task { await eventKit.requestAccess() }
+        // First run shows onboarding (which requests access); afterwards just refresh.
+        if UserDefaults.standard.bool(forKey: "hasOnboarded") {
+            Task { await eventKit.requestAccess() }
+        } else {
+            onboardingController.show()
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
