@@ -291,6 +291,31 @@ do {
 }
 h.eq(parse("夜8時 ジョギング").startDate, ymd(2026, 6, 5, 20, 0), "夜8時 = 20:00")
 
+h.group("Vague time defaults")
+do {
+    let p = parse("明天下午 开会")
+    h.eq(p.kind, .event, "afternoon + 开会 -> event")
+    h.eq(p.startDate, ymd(2026, 6, 6, 14, 0), "下午 -> 14:00")
+    h.eq(p.title, "开会", "title")
+}
+do {
+    let p = parse("今晚 看电影")
+    h.eq(p.startDate, ymd(2026, 6, 5, 19, 0), "今晚 -> 19:00 today")
+    h.eq(p.title, "看电影", "title")
+}
+h.eq(parse("明天早上 跑步").startDate, ymd(2026, 6, 6, 9, 0), "早上 -> 09:00")
+h.eq(parse("下午 提交报告").startDate, ymd(2026, 6, 5, 14, 0), "下午 -> 14:00 today")
+do {
+    let p = parse("tonight call dad")
+    h.eq(p.startDate, ymd(2026, 6, 5, 19, 0), "tonight -> 19:00")
+    h.eq(p.title, "call dad", "title")
+}
+do {
+    let p = parse("明日 午後 ミーティング")
+    h.eq(p.kind, .event, "午後 + ミーティング -> event")
+    h.eq(p.startDate, ymd(2026, 6, 6, 14, 0), "午後 -> 14:00")
+}
+
 h.group("Search query")
 do {
     let q = SearchQueryParser.parse("团队 is:event due:week ~Work #urgent !!")

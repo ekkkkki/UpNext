@@ -94,7 +94,9 @@ enum DateTimeParser {
         }
 
         // 4) Single time, optionally followed by a duration -> reminder or event.
+        //    Fall back to a vague period word ("下午" / "tonight" / "朝") → a default clock.
         let time = findTime(scanner, eveningHint: day?.eveningHint ?? false)
+            ?? findBareTimeWord(scanner, eveningHint: day?.eveningHint ?? false)
         if let time = time {
             let baseDay = day?.date ?? cal.startOfDay(for: now)
             var start = combine(day: baseDay, clock: time.clock, cal: cal)
@@ -523,6 +525,38 @@ enum DateTimeParser {
             if eveningHint, hour < 12 { hour += 12 }
             scanner.consume(m.range)
             return TimeMatch(clock: Clock(hour: hour, minute: 0), range: m.range)
+        }
+        return nil
+    }
+
+    /// A standalone period word with no clock number → a sensible default time.
+    /// Only consulted when no explicit time was found. The negative lookahead avoids
+    /// matching when a number/点/時 follows (that case is handled by `findTime`).
+    private static func findBareTimeWord(_ scanner: Scanner, eveningHint: Bool) -> TimeMatch? {
+        let ns = scanner.ns
+        let bare = re("(清晨|早上|早晨|上午|中午|正午|下午|傍晚|晚上|morning|noon|afternoon|evening|night|午前|午後|朝|夕方|夜|昼)(?![0-9０-９一二两三四五六七八九十点點時时:])")
+        if let m = scanner.firstFree(bare) {
+            let w = ns.substring(with: m.range).lowercased()
+            let hour: Int
+            if w.contains("清晨") || w.contains("早") || w == "morning" || w.contains("朝") {
+                hour = 9
+            } else if w.contains("上午") || w.contains("午前") {
+                hour = 10
+            } else if w.contains("中午") || w.contains("正午") || w == "noon" || w.contains("昼") {
+                hour = 12
+            } else if w.contains("下午") || w == "afternoon" || w.contains("午後") {
+                hour = 14
+            } else if w.contains("傍晚") || w.contains("夕方") {
+                hour = 18
+            } else {
+                hour = 19 // 晚上 / evening / night / 夜
+            }
+            scanner.consume(m.range)
+            return TimeMatch(clock: Clock(hour: hour, minute: 0), range: m.range)
+        }
+        // "今晚 / 明晚 / tonight" gave a day with an evening hint but no clock → default 19:00.
+        if eveningHint {
+            return TimeMatch(clock: Clock(hour: 19, minute: 0), range: NSRange(location: NSNotFound, length: 0))
         }
         return nil
     }
