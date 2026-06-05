@@ -270,6 +270,29 @@ enum DateTimeParser {
             return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
         }
 
+        // Weekend → the upcoming Saturday ("下周末"/"next weekend" → the one after).
+        let weekend = re("(下个?|next)?\\s*(周末|週末|weekend)")
+        if let m = scanner.firstFree(weekend) {
+            let prefix = group(m, 1, in: ns)?.lowercased() ?? ""
+            let isNext = prefix.contains("next") || prefix.contains("下")
+            var date = nextWeekday(7, from: now, cal: cal, includingToday: true)
+            if isNext { date = cal.date(byAdding: .day, value: 7, to: date) ?? date }
+            scanner.consume(m.range)
+            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
+        }
+
+        // End of month → last calendar day of the current month.
+        let monthEnd = re("(月底|月末|end\\s+of\\s+(?:the\\s+)?month)")
+        if let m = scanner.firstFree(monthEnd) {
+            let comps = cal.dateComponents([.year, .month], from: now)
+            if let startOfMonth = cal.date(from: comps),
+               let nextMonth = cal.date(byAdding: .month, value: 1, to: startOfMonth),
+               let lastDay = cal.date(byAdding: .day, value: -1, to: nextMonth) {
+                scanner.consume(m.range)
+                return DayMatch(date: lastDay, endDate: nil, range: m.range, eveningHint: false)
+            }
+        }
+
         // Absolute Chinese date: (YYYY年)?M月D日/号
         let cnDate = re("(?:(\\d{4})\\s*年)?\\s*(\(cnNum){1,2})\\s*月\\s*(\(cnNum){1,3})\\s*[日号]")
         if let m = scanner.firstFree(cnDate),

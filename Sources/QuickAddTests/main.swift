@@ -157,6 +157,13 @@ do {
     h.eq(p.startDate, ymd(2027, 1, 5, 0, 0), "English month date rolls forward")
     h.eq(p.title, "dentist", "title")
 }
+do {
+    let p = parse("周末 大扫除")
+    h.eq(p.startDate, ymd(2026, 6, 6, 0, 0), "weekend -> upcoming Saturday")
+    h.eq(p.title, "大扫除", "title")
+}
+h.eq(parse("月底 交房租").startDate, ymd(2026, 6, 30, 0, 0), "month end -> last day")
+h.eq(parse("交报告 by end of month").startDate, ymd(2026, 6, 30, 0, 0), "end of month (EN)")
 
 h.group("Lists, tags, notes, URLs")
 do {
