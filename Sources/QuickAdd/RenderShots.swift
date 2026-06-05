@@ -72,6 +72,27 @@ enum RenderShots {
             m.setPreviewResults(sampleHits())
         }
 
+        // English-only set for the landing page (docs/index.html).
+        shot("hero-en") { m in
+            m.reset()
+            m.input = "Client meeting tomorrow 3pm 250 Main St Suite 400"
+        }
+        shot("add-reminder-en") { m in
+            m.reset()
+            m.input = "Buy oat milk ~Groceries #errands tomorrow !!"
+        }
+        shot("add-event-en") { m in
+            m.reset()
+            m.input = "Design sync tomorrow 2-3pm ~Work"
+        }
+        shot("search-en") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.mode = .search
+            m.searchText = "due:week"
+            m.setPreviewResults(sampleHitsEN())
+        }
+
         print("rendered \(count) screenshot(s) → \(outDir)")
         return count > 0 ? 0 : 1
     }
@@ -106,6 +127,33 @@ enum RenderShots {
                       date: at(3, 9, 0), endDate: at(3, 10, 0), isAllDay: false, isCompleted: false,
                       priority: .none, calendarName: "Travel", calendarColor: .systemPurple,
                       location: "Tokyo Station Hotel", reminder: nil, event: nil)
+        ]
+    }
+
+    private static func sampleHitsEN() -> [SearchHit] {
+        let cal = Calendar.current
+        let now = Date()
+        func at(_ dayOffset: Int, _ h: Int, _ m: Int) -> Date {
+            let base = cal.date(byAdding: .day, value: dayOffset, to: cal.startOfDay(for: now))!
+            return cal.date(byAdding: DateComponents(hour: h, minute: m), to: base)!
+        }
+        return [
+            SearchHit(id: "1", title: "Team weekly sync", notes: nil, kind: .event,
+                      date: at(1, 10, 0), endDate: at(1, 11, 0), isAllDay: false, isCompleted: false,
+                      priority: .none, calendarName: "Work", calendarColor: .systemBlue,
+                      location: "Room 4A", reminder: nil, event: nil),
+            SearchHit(id: "2", title: "Buy oat milk and eggs", notes: nil, kind: .reminder,
+                      date: at(0, 18, 0), endDate: nil, isAllDay: false, isCompleted: false,
+                      priority: .medium, calendarName: "Groceries", calendarColor: .systemGreen,
+                      location: nil, reminder: nil, event: nil),
+            SearchHit(id: "3", title: "Submit quarterly report", notes: nil, kind: .reminder,
+                      date: at(-1, 17, 0), endDate: nil, isAllDay: false, isCompleted: false,
+                      priority: .high, calendarName: "Work", calendarColor: .systemOrange,
+                      location: nil, reminder: nil, event: nil),
+            SearchHit(id: "4", title: "Hotel check-in", notes: nil, kind: .event,
+                      date: at(3, 15, 0), endDate: at(3, 16, 0), isAllDay: false, isCompleted: false,
+                      priority: .none, calendarName: "Travel", calendarColor: .systemPurple,
+                      location: "Grand Hyatt, 6th Ave", reminder: nil, event: nil)
         ]
     }
 }
