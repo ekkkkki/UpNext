@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private lazy var settingsController = SettingsWindowController(eventKit: eventKit)
     private let hotKey = HotKeyManager()
     private var statusItem: NSStatusItem?
+    private weak var shortcutHintItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory) // menu-bar agent, no Dock icon
@@ -38,7 +39,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setupStatusItem()
 
         hotKey.onTrigger = { [weak self] in self?.panelController.toggle(mode: .add) }
-        hotKey.register(keyCode: HotKeyManager.defaultKeyCode, modifiers: HotKeyManager.defaultModifiers)
+        registerHotKey()
+        NotificationCenter.default.addObserver(forName: ShortcutStore.changed, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.registerHotKey() }
+        }
 
         // Headless boot check: verify wiring, then exit without prompting for access.
         if CommandLine.arguments.contains("--smoke-test") {
@@ -52,6 +56,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
+
+    private func registerHotKey() {
+        let s = ShortcutStore.current
+        hotKey.register(keyCode: s.keyCode, modifiers: s.carbonModifiers)
+        shortcutHintItem?.title = "Shortcut: \(s.display)"
+    }
 
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -69,9 +79,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(search)
         menu.addItem(.separator())
 
-        let hint = NSMenuItem(title: "Shortcut: ⇧⌘A", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "Shortcut: \(ShortcutStore.current.display)", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
+        shortcutHintItem = hint
         menu.addItem(.separator())
 
         let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")

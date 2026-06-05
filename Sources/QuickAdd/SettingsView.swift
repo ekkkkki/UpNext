@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage(Theme.userDefaultsDefaultCalendar) private var defaultCalendar = ""
     @AppStorage(Theme.userDefaultsUseAI) private var useAI = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @State private var shortcut = ShortcutStore.current
 
     var body: some View {
         Form {
@@ -57,7 +58,18 @@ struct SettingsView: View {
 
             Section("General") {
                 LabeledContent("Quick-add shortcut") {
-                    Text("⇧⌘A").font(.system(.body, design: .rounded)).foregroundStyle(.secondary)
+                    HStack(spacing: 8) {
+                        ShortcutRecorder(shortcut: shortcut) { s in
+                            shortcut = s
+                            ShortcutStore.current = s
+                        }
+                        .frame(width: 160, height: 26)
+                        Button("Reset") {
+                            shortcut = ShortcutStore.defaultShortcut
+                            ShortcutStore.current = ShortcutStore.defaultShortcut
+                        }
+                        .controlSize(.small)
+                    }
                 }
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }

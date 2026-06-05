@@ -211,6 +211,6 @@ the tests are deterministic.
   CI builds and tests only `QuickAddCore`, which has no such requirement.
 - Ad-hoc signed for local/personal distribution. For sharing widely you'd add a Developer ID
   signature + notarization in `package.sh`.
-- The hot key is fixed at ⇧⌘A in this version.
+- The quick-add hot key defaults to ⇧⌘A and is customizable in **Settings ▸ General**.
 - Date parsing favors common phrasings; very unusual constructions fall through to the title
   (nothing is lost — you just see it in the preview and can adjust).
