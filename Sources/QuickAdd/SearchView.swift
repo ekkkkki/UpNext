@@ -12,8 +12,8 @@ struct SearchView: View {
             resultsArea
             footer
         }
-        .onAppear { focusSoon() }
-        .onChange(of: model.mode) { if model.mode == .search { focusSoon() } }
+        .onAppear { focusSoon(); model.loadAgenda() }
+        .onChange(of: model.mode) { if model.mode == .search { focusSoon(); model.loadAgenda() } }
     }
 
     private var searchRow: some View {
@@ -38,7 +38,7 @@ struct SearchView: View {
     @ViewBuilder
     private var resultsArea: some View {
         if model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-            emptyHint
+            if model.agenda.isEmpty { emptyHint } else { agendaList }
         } else if model.results.isEmpty && !model.isSearching {
             HStack {
                 Spacer()
@@ -68,6 +68,29 @@ struct SearchView: View {
                     withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(idx, anchor: .center) }
                 }
             }
+        }
+    }
+
+    private var agendaList: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Label("Today", systemImage: "sun.max")
+                    .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Text("\(model.agenda.count)").font(.system(size: 11)).foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 2)
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(model.agenda) { hit in
+                        SearchRow(hit: hit,
+                                  onToggle: { model.agendaToggle(hit) },
+                                  onDelete: { model.agendaDelete(hit) })
+                        Divider().opacity(0.35).padding(.leading, 44)
+                    }
+                }
+            }
+            .frame(height: min(CGFloat(model.agenda.count) * 54 + 4, 340))
         }
     }
 

@@ -93,6 +93,13 @@ enum RenderShots {
             m.setPreviewResults(sampleHitsEN())
         }
 
+        shot("today-en") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.mode = .search
+            m.setPreviewAgenda(sampleHitsEN())
+        }
+
         // Chinese set for the 中文 landing page.
         shot("hero-zh") { m in
             m.reset()

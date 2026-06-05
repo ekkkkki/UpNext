@@ -16,6 +16,8 @@ public struct SearchQuery: Equatable, Sendable {
     public var tags: [String] = []
     public var due: Due?
 
+    public init() {}
+
     public var isEmpty: Bool {
         text.isEmpty && kind == nil && completion == nil && priority == nil
             && listName == nil && tags.isEmpty && due == nil

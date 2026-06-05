@@ -239,6 +239,26 @@ final class EventKitService: ObservableObject {
 
     // MARK: Search
 
+    /// Today's glance: incomplete reminders due today or overdue, plus events occurring
+    /// today. Used as the default view when search is opened with no query.
+    func agenda(now: Date = Date()) async -> [SearchHit] {
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: now)
+        guard let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) else { return [] }
+        var hits: [SearchHit] = []
+        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal)
+        hits += reminders.filter { h in
+            guard !h.isCompleted, let d = h.date else { return false }
+            return d < endOfToday // overdue or due today
+        }
+        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal)
+        hits += events.filter { h in
+            guard let d = h.date else { return false }
+            return d >= startOfToday && d < endOfToday
+        }
+        return Array(hits.sorted(by: Self.ordering).prefix(50))
+    }
+
     func search(_ query: SearchQuery, now: Date = Date(), limit: Int = 200) async -> [SearchHit] {
         var hits: [SearchHit] = []
         let cal = Calendar.current

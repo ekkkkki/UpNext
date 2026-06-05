@@ -1,7 +1,7 @@
 import AppKit
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let eventKit = EventKitService()
     private lazy var model = PanelModel(eventKit: eventKit)
     private lazy var panelController = PanelController(model: model, eventKit: eventKit)
@@ -9,6 +9,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKey = HotKeyManager()
     private var statusItem: NSStatusItem?
     private weak var shortcutHintItem: NSMenuItem?
+    private weak var agendaHintItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory) // menu-bar agent, no Dock icon
@@ -71,6 +72,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let menu = NSMenu()
+        menu.delegate = self
+        let agendaHint = NSMenuItem(title: "Today: …", action: nil, keyEquivalent: "")
+        agendaHint.isEnabled = false
+        menu.addItem(agendaHint)
+        agendaHintItem = agendaHint
+        menu.addItem(.separator())
+
         let add = NSMenuItem(title: "Quick Add", action: #selector(showAdd), keyEquivalent: "")
         add.target = self
         menu.addItem(add)
@@ -99,6 +107,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         item.menu = menu
         statusItem = item
+    }
+
+    func menuWillOpen(_ menu: NSMenu) {
+        Task { @MainActor in await updateAgendaHint() }
+    }
+
+    private func updateAgendaHint() async {
+        eventKit.refreshAuthorization()
+        guard eventKit.remindersAuthorized || eventKit.calendarAuthorized else {
+            agendaHintItem?.title = "Grant access to see today"
+            return
+        }
+        let items = await eventKit.agenda()
+        guard !items.isEmpty else { agendaHintItem?.title = "Nothing due today 🎉"; return }
+        var title = "Today: \(items.count) item\(items.count == 1 ? "" : "s")"
+        if let next = items.first(where: { ($0.date ?? .distantPast) >= Date() }), let date = next.date {
+            let f = DateFormatter(); f.dateFormat = "HH:mm"
+            let name = next.title.count > 22 ? String(next.title.prefix(22)) + "…" : next.title
+            title += "  ·  next: \(name) \(f.string(from: date))"
+        }
+        agendaHintItem?.title = title
     }
 
     @objc private func showAdd() { panelController.show(mode: .add) }

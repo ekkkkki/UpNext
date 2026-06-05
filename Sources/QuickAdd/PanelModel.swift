@@ -21,6 +21,8 @@ final class PanelModel: ObservableObject {
     @Published private(set) var results: [SearchHit] = []
     @Published private(set) var isSearching = false
     @Published var selectedIndex = 0
+    /// Today/overdue glance shown when search opens with no query.
+    @Published private(set) var agenda: [SearchHit] = []
     /// Disabled during offscreen screenshot rendering so injected results aren't clobbered.
     var liveSearchEnabled = true
 
@@ -126,6 +128,16 @@ final class PanelModel: ObservableObject {
         mode = .add
         lastCreated = nil
         canUndo = false
+        agenda = []
+    }
+
+    func agendaToggle(_ hit: SearchHit) {
+        eventKit.toggleCompletion(hit)
+        loadAgenda()
+    }
+    func agendaDelete(_ hit: SearchHit) {
+        eventKit.delete(hit)
+        agenda.removeAll { $0.id == hit.id }
     }
 
     // MARK: Search flow
@@ -168,12 +180,23 @@ final class PanelModel: ObservableObject {
 
     func refreshSearch() { scheduleSearch() }
 
-    /// Inject results for offscreen screenshot rendering (no EventKit fetch).
+    /// Load the Today/overdue glance (when search is opened with no query).
+    func loadAgenda() {
+        guard liveSearchEnabled else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let items = await self.eventKit.agenda()
+            self.agenda = items
+        }
+    }
+
+    /// Inject results/agenda for offscreen screenshot rendering (no EventKit fetch).
     func setPreviewResults(_ hits: [SearchHit]) {
         results = hits
         selectedIndex = 0
         isSearching = false
     }
+    func setPreviewAgenda(_ hits: [SearchHit]) { agenda = hits }
 
     func toggleComplete(_ hit: SearchHit) {
         eventKit.toggleCompletion(hit)
