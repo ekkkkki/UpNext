@@ -63,7 +63,7 @@ struct SearchView: View {
                         }
                     }
                 }
-                .frame(maxHeight: 380)
+                .frame(height: min(CGFloat(model.results.count) * 54 + 4, 380))
                 .onChange(of: model.selectedIndex) { _, idx in
                     withAnimation(.easeOut(duration: 0.12)) { proxy.scrollTo(idx, anchor: .center) }
                 }
@@ -146,6 +146,8 @@ struct SearchRow: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
+                .accessibilityLabel("Delete")
+                .help("Delete")
             }
             Image(systemName: hit.kind == .event ? "calendar" : "checklist")
                 .font(.system(size: 11))
@@ -177,6 +179,7 @@ struct SearchRow: View {
                     .foregroundStyle(hit.isCompleted ? Color.accentColor : Color(hit.calendarColor))
             }
             .buttonStyle(.plain)
+            .accessibilityLabel(hit.isCompleted ? "Mark incomplete" : "Mark complete")
         } else {
             Circle().fill(Color(hit.calendarColor)).frame(width: 10, height: 10).padding(.horizontal, 3)
         }

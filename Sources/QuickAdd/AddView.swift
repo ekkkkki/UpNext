@@ -182,5 +182,7 @@ struct ModeToggle: View {
                 .foregroundStyle(mode == value ? .white : .secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(value == .add ? "Quick add" : "Search")
+        .help(value == .add ? "Quick add (⌘N)" : "Search (⌘F)")
     }
 }
