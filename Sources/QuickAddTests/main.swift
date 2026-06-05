@@ -300,6 +300,10 @@ do {
     h.eq(p.kind, .reminder, "no time -> reminder (with location)")
 }
 h.ok(parse("email bob@example.com the report").location == nil, "email @ is not a location")
+h.eq(parse("meeting on Friday").title, "meeting", "strip dangling 'on'")
+h.eq(parse("call at 3pm").title, "call", "strip dangling 'at'")
+h.eq(parse("submit report by Friday").title, "submit report", "strip dangling 'by'")
+h.eq(parse("follow up on the plan").title, "follow up on the plan", "keep 'on' when not dangling")
 do {
     // Regression: a plain dated to-do is still a reminder.
     let p = parse("买牛奶 明天")

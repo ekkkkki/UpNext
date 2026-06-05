@@ -251,12 +251,16 @@ public struct InputParser {
         return copy as String
     }
 
+    /// Date/time connector words that are meaningless once their date/time was extracted
+    /// ("meeting on <Friday>" → "meeting"). Only stripped at the title's edges.
+    private static let edgeFillers: Set<String> = ["on", "at", "by", "from", "due", "until", "till", "around"]
+
     static func cleanTitle(_ s: String) -> String {
-        let collapsed = s.components(separatedBy: .whitespacesAndNewlines)
-            .filter { !$0.isEmpty }
-            .joined(separator: " ")
         let trimSet = CharacterSet(charactersIn: " ,，、:：;；-–—~～·")
-        return collapsed.trimmingCharacters(in: trimSet)
+        var words = s.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
+        while let last = words.last, edgeFillers.contains(last.lowercased()) { words.removeLast() }
+        while let first = words.first, edgeFillers.contains(first.lowercased()) { words.removeFirst() }
+        return words.joined(separator: " ").trimmingCharacters(in: trimSet)
     }
 
     // MARK: - Priority
