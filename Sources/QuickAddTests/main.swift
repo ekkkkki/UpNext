@@ -161,6 +161,11 @@ do {
     h.eq(p.title, "牙医", "title")
 }
 h.eq(parse("下周一 体检").startDate, ymd(2026, 6, 15, 0, 0), "next Monday")
+h.eq(parse("in 2 weeks 体检").startDate, ymd(2026, 6, 19, 0, 0), "in 2 weeks")
+h.eq(parse("两周后 交报告").startDate, ymd(2026, 6, 19, 0, 0), "两周后 (zh)")
+h.eq(parse("3个月后 复查").startDate, ymd(2026, 9, 5, 0, 0), "3个月后 (zh)")
+h.eq(parse("2週間後 健康診断").startDate, ymd(2026, 6, 19, 0, 0), "2週間後 (ja)")
+h.eq(parse("in 3 months review").startDate, ymd(2026, 9, 5, 0, 0), "in 3 months")
 do {
     let p = parse("Jan 5 dentist")
     h.eq(p.startDate, ymd(2027, 1, 5, 0, 0), "English month date rolls forward")

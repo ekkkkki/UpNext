@@ -249,6 +249,26 @@ enum DateTimeParser {
             return DayMatch(date: cal.date(byAdding: .day, value: n, to: today) ?? today, endDate: nil, range: m.range, eveningHint: false)
         }
 
+        // "in N weeks" / "N周后" / "N週間後"
+        let inWeeks = re("\\bin\\s+(\\d+)\\s+weeks?\\b|(\(cnNum)+)\\s*(?:周|星期|週間|週)\\s*(?:后|之后|後)")
+        if let m = scanner.firstFree(inWeeks) {
+            let n = number(group(m, 1, in: ns)) ?? number(group(m, 2, in: ns))
+            if let n = n {
+                scanner.consume(m.range)
+                return DayMatch(date: cal.date(byAdding: .day, value: n * 7, to: today) ?? today, endDate: nil, range: m.range, eveningHint: false)
+            }
+        }
+
+        // "in N months" / "N个月后" / "Nヶ月後"
+        let inMonths = re("\\bin\\s+(\\d+)\\s+months?\\b|(\(cnNum)+)\\s*(?:个月|個月|ヶ月|か月|月)\\s*(?:后|之后|後)")
+        if let m = scanner.firstFree(inMonths) {
+            let n = number(group(m, 1, in: ns)) ?? number(group(m, 2, in: ns))
+            if let n = n {
+                scanner.consume(m.range)
+                return DayMatch(date: cal.date(byAdding: .month, value: n, to: today) ?? today, endDate: nil, range: m.range, eveningHint: false)
+            }
+        }
+
         // Weekday with optional this/next prefix.
         let prefixedWeekday = re("(this|next|本|这|这个|下|下个)?\\s*(周|星期|礼拜)\\s*([一二三四五六日天])")
         if let m = scanner.firstFree(prefixedWeekday),
