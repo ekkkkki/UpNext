@@ -122,6 +122,9 @@ struct AddView: View {
                 Chip(text: location.count > 26 ? String(location.prefix(26)) + "…" : location,
                      systemImage: "mappin.and.ellipse", color: .red)
             }
+            if let lead = parsed.leadTimeSeconds {
+                Chip(text: Self.leadLabel(lead), systemImage: "bell", color: .blue)
+            }
             if let list = parsed.listName {
                 Chip(text: list, systemImage: "folder", color: .green)
             }
@@ -151,6 +154,13 @@ struct AddView: View {
 
     private func focusSoon() {
         focusTick &+= 1
+    }
+
+    static func leadLabel(_ seconds: TimeInterval) -> String {
+        let s = Int(seconds)
+        if s % 86400 == 0 { return "\(s / 86400)d before" }
+        if s % 3600 == 0 { return "\(s / 3600)h before" }
+        return "\(s / 60)m before"
     }
 
     static let examples = [

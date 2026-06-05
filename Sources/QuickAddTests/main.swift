@@ -291,6 +291,31 @@ do {
 }
 h.eq(parse("夜8時 ジョギング").startDate, ymd(2026, 6, 5, 20, 0), "夜8時 = 20:00")
 
+h.group("Lead-time alarms")
+do {
+    let p = parse("明天9点 开会 提前30分钟")
+    h.eq(p.leadTimeSeconds, 1800, "提前30分钟 -> 1800s")
+    h.eq(p.kind, .event, "still an event (开会)")
+    h.eq(p.startDate, ymd(2026, 6, 6, 9, 0), "start unaffected by lead time")
+    h.eq(p.title, "开会", "lead phrase stripped from title")
+}
+h.eq(parse("买牛奶 明天 提前1天").leadTimeSeconds, 86400, "提前1天 -> 1 day")
+h.eq(parse("歯医者 明日 1日前").leadTimeSeconds, 86400, "1日前 -> 1 day (JA)")
+do {
+    let p = parse("review tomorrow 3pm remind 15 min before")
+    h.eq(p.leadTimeSeconds, 900, "remind 15 min before -> 900s")
+    h.eq(p.startDate, ymd(2026, 6, 6, 15, 0), "start 3pm")
+}
+h.ok(parse("提前完成任务").leadTimeSeconds == nil, "提前完成 is not a lead time")
+do {
+    let p = parse("全天 明天 团建")
+    h.ok(p.isAllDay, "全天 -> all day")
+    h.ok(!p.hasTime, "no time of day")
+    h.eq(p.startDate, ymd(2026, 6, 6, 0, 0), "tomorrow, start of day")
+    h.eq(p.title, "团建", "title")
+}
+h.ok(parse("all day tomorrow project freeze").isAllDay, "all day (EN)")
+
 h.group("Vague time defaults")
 do {
     let p = parse("明天下午 开会")

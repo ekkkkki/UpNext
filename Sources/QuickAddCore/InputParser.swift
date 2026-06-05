@@ -90,6 +90,22 @@ public struct InputParser {
             mask(rec.range)
         }
 
+        // 6b) Lead-time alarm ("提前30分钟" / "30分前" / "1 day before"). Extracted before
+        //     the date stage so its number isn't mistaken for an event duration.
+        if let lead = Self.matchLeadTime(masked) {
+            item.leadTimeSeconds = lead.seconds
+            addHighlight(lead.range, .time)
+            mask(lead.range)
+        }
+
+        // 6c) Explicit all-day ("全天" / "all day" / "終日").
+        var forceAllDay = false
+        if let m = Self.allDayPattern.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
+            forceAllDay = true
+            addHighlight(m.range, .date)
+            mask(m.range)
+        }
+
         // 7) Date / time / duration / range
         let dt = DateTimeParser.parse(masked.copyString, now: now, calendar: calendar)
         item.startDate = dt.startDate
@@ -127,6 +143,13 @@ public struct InputParser {
         item.kind = isEvent ? .event : .reminder
         if isEvent, item.endDate == nil, item.hasTime, let start = item.startDate {
             item.endDate = start.addingTimeInterval(Self.defaultEventDuration)
+        }
+
+        // Explicit all-day overrides any time-of-day.
+        if forceAllDay {
+            item.isAllDay = true
+            item.hasTime = false
+            if let s = item.startDate { item.startDate = calendar.startOfDay(for: s) }
         }
 
         // A recurring item with no explicit date needs an anchor date to recur from.
@@ -255,6 +278,35 @@ public struct InputParser {
         return nil
     }
 
+    // MARK: - Lead-time alarm
+
+    private static let leadTimePatterns: [(NSRegularExpression, Int, Int)] = [
+        (r("提前\\s*([0-9零〇一二两三四五六七八九十]+)?\\s*(分钟|分|小时|个小时|小時|钟头|天|周|星期)"), 1, 2),
+        (r("([0-9一二三四五六七八九十]+)\\s*(分|時間|日|週間)\\s*前"), 1, 2),
+        (r("(?:remind(?:\\s+me)?\\s+|alert\\s+)?([0-9]+)\\s*(minutes?|mins?|min|hours?|hrs?|hr|days?|weeks?)\\s+(?:before|ahead|prior|early|in advance)"), 1, 2)
+    ]
+
+    private static func matchLeadTime(_ s: NSMutableString) -> (range: NSRange, seconds: TimeInterval)? {
+        let str = s.copyString
+        let full = s.fullRange
+        for (regex, numIdx, unitIdx) in leadTimePatterns {
+            guard let m = regex.firstMatch(in: str, options: [], range: full) else { continue }
+            let numRange = m.range(at: numIdx)
+            let numStr = numRange.location != NSNotFound ? s.substring(with: numRange) : "1"
+            let n = Int(numStr) ?? ChineseNumber.parse(numStr) ?? 1
+            let unit = s.substring(with: m.range(at: unitIdx)).lowercased()
+            let per: TimeInterval
+            if unit.contains("分") || unit.contains("min") { per = 60 }
+            else if unit.contains("小时") || unit.contains("小時") || unit.contains("時間") || unit.contains("钟头") || unit.contains("hour") || unit.contains("hr") { per = 3600 }
+            else if unit.contains("天") || unit.contains("日") || unit.contains("day") { per = 86400 }
+            else if unit.contains("周") || unit.contains("星期") || unit.contains("週") || unit.contains("week") { per = 604800 }
+            else { per = 0 }
+            guard per > 0 else { continue }
+            return (m.range, per * Double(n))
+        }
+        return nil
+    }
+
     private func nextWeekday(_ target: Int) -> Date {
         let cur = calendar.component(.weekday, from: now)
         let delta = (target - cur + 7) % 7
@@ -277,6 +329,7 @@ public struct InputParser {
     private static let tagPattern = r("(?:^|\\s)#([\\p{L}\\p{N}_\\-/]+)")
     private static let urlDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
+    static let allDayPattern = r("(全天|整天|all[\\s-]?day|終日|终日)")
     private static let recWeeklyDayCN = r("(?:每|每个)\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天])")
     private static let recWeeklyDayEN = r("every\\s+(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\\b")
 

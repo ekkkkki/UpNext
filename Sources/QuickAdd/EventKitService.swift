@@ -131,14 +131,15 @@ final class EventKitService: ObservableObject {
         var cal = Calendar.current
         cal.timeZone = .current
         if let due = item.startDate {
+            let lead = item.leadTimeSeconds ?? 0
             if item.hasTime {
                 reminder.dueDateComponents = cal.dateComponents([.year, .month, .day, .hour, .minute], from: due)
-                reminder.addAlarm(EKAlarm(absoluteDate: due))
+                reminder.addAlarm(EKAlarm(absoluteDate: due.addingTimeInterval(-lead)))
             } else {
                 reminder.dueDateComponents = cal.dateComponents([.year, .month, .day], from: due)
-                // All-day reminders alert at 9:00 local on the day.
+                // All-day reminders alert at 9:00 local on the day (minus any lead time).
                 if let alarmDate = cal.date(bySettingHour: 9, minute: 0, second: 0, of: due) {
-                    reminder.addAlarm(EKAlarm(absoluteDate: alarmDate))
+                    reminder.addAlarm(EKAlarm(absoluteDate: alarmDate.addingTimeInterval(-lead)))
                 }
             }
         }
@@ -172,7 +173,7 @@ final class EventKitService: ObservableObject {
             event.endDate = item.endDate.map { $0.addingTimeInterval(-1) } ?? start
         } else {
             event.endDate = item.endDate ?? start.addingTimeInterval(3600)
-            event.addAlarm(EKAlarm(relativeOffset: -5 * 60)) // 5 min before
+            event.addAlarm(EKAlarm(relativeOffset: -(item.leadTimeSeconds ?? 5 * 60))) // default 5 min before
         }
         if let rule = recurrenceRule(from: item.recurrence) {
             event.addRecurrenceRule(rule)

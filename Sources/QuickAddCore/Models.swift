@@ -142,6 +142,8 @@ public struct ParsedItem: Equatable, Sendable {
     public var recurrence: RecurrenceRule?
     /// Physical place / address (events). Set the event's location on creation.
     public var location: String?
+    /// Seconds before the start to alert ("remind 30 min before" / 提前30分钟 / 30分前).
+    public var leadTimeSeconds: TimeInterval?
 
     /// Recognized spans in the original input (for live highlighting).
     public var highlights: [Highlight]
@@ -160,6 +162,7 @@ public struct ParsedItem: Equatable, Sendable {
         url: URL? = nil,
         recurrence: RecurrenceRule? = nil,
         location: String? = nil,
+        leadTimeSeconds: TimeInterval? = nil,
         highlights: [Highlight] = []
     ) {
         self.title = title
@@ -175,6 +178,7 @@ public struct ParsedItem: Equatable, Sendable {
         self.url = url
         self.recurrence = recurrence
         self.location = location
+        self.leadTimeSeconds = leadTimeSeconds
         self.highlights = highlights
     }
 
