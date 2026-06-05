@@ -1,4 +1,5 @@
 import Foundation
+import EventKit
 import QuickAddCore
 
 /// End-to-end EventKit check: parse → create a reminder + an event → search for
@@ -44,6 +45,19 @@ enum IntegrationSelfTest {
                 let outcome = try eventKit.create(from: item)
                 check(outcome.kind == .reminder, "created reminder (\(outcome.listName))")
             } catch { check(false, "create reminder threw: \(error.localizedDescription)") }
+
+            // Recurrence count + lead-time round-trip through EventKit.
+            let recItem = parser.parse("\(marker) 每天 喝水 提前30分钟 共3次")
+            check(recItem.recurrence?.occurrenceCount == 3, "parsed occurrence count 3")
+            check(recItem.leadTimeSeconds == 1800, "parsed lead time 30m")
+            do {
+                let outcome = try eventKit.create(from: recItem)
+                if let r = outcome.calendarItem as? EKReminder {
+                    check(r.hasRecurrenceRules, "recurrence rule attached")
+                    check(r.recurrenceRules?.first?.recurrenceEnd?.occurrenceCount == 3, "EK occurrence count 3")
+                    check(r.hasAlarms, "lead-time alarm attached")
+                } else { check(false, "no reminder object returned") }
+            } catch { check(false, "create recurring reminder threw: \(error.localizedDescription)") }
         }
 
         if eventKit.calendarAuthorized {
