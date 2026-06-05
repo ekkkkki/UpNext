@@ -217,6 +217,13 @@ do {
     h.eq(p.title, "团队会", "title")
 }
 do {
+    let p = parse("每周一三五 健身")
+    h.eq(p.recurrence?.frequency, .weekly, "weekly multi (zh)")
+    h.eq(p.recurrence?.weekdays ?? [], [2, 4, 6], "Mon/Wed/Fri")
+    h.eq(p.title, "健身", "title")
+}
+h.eq(parse("毎週月水金 ジム").recurrence?.weekdays ?? [], [2, 4, 6], "weekly multi (ja)")
+do {
     let p = parse("every 3 days 浇花")
     h.eq(p.recurrence?.frequency, .daily, "every N days")
     h.eq(p.recurrence?.interval, 3, "interval 3")

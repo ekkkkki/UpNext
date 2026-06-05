@@ -319,21 +319,25 @@ public struct InputParser {
         let str = s.copyString
         let full = s.fullRange
 
-        // Weekly on a specific weekday: 每周一 / 每星期二 / every monday
-        if let m = Self.recWeeklyDayCN.firstMatch(in: str, options: [], range: full),
-           let wd = (m.range(at: 1).location != NSNotFound ? Self.recWeekdayMap[s.substring(with: m.range(at: 1))] : nil) {
-            return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
+        // Weekly on one or more weekdays: 每周一 / 每周一三五 / 每星期二
+        if let m = Self.recWeeklyDayCN.firstMatch(in: str, options: [], range: full), m.range(at: 1).location != NSNotFound {
+            let wds = s.substring(with: m.range(at: 1)).compactMap { Self.recWeekdayMap[String($0)] }
+            if !wds.isEmpty {
+                return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, weekdays: Array(Set(wds)).sorted()), range: m.range)
+            }
         }
         if let m = Self.recWeeklyDayEN.firstMatch(in: str, options: [], range: full),
            m.range(at: 1).location != NSNotFound,
            let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 1)).lowercased()] {
             return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
         }
-        // Weekly on a specific weekday, Japanese: 毎週月曜 / 毎週金曜日
-        if let m = Self.recWeeklyDayJA.firstMatch(in: str, options: [], range: full),
-           m.range(at: 1).location != NSNotFound,
-           let wd = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1][s.substring(with: m.range(at: 1))] {
-            return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
+        // Weekly on one or more weekdays, Japanese: 毎週月曜 / 毎週月水金
+        if let m = Self.recWeeklyDayJA.firstMatch(in: str, options: [], range: full), m.range(at: 1).location != NSNotFound {
+            let map: [Character: Int] = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1]
+            let wds = s.substring(with: m.range(at: 1)).compactMap { map[$0] }
+            if !wds.isEmpty {
+                return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, weekdays: Array(Set(wds)).sorted()), range: m.range)
+            }
         }
 
         // every N <unit> / 每N<unit>
@@ -485,7 +489,7 @@ public struct InputParser {
     private static let urlDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
     static let allDayPattern = r("(全天|整天|all[\\s-]?day|終日|终日)")
-    private static let recWeeklyDayCN = r("(?:每|每个)\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天])")
+    private static let recWeeklyDayCN = r("(?:每|每个)\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天]+)")
     private static let recWeeklyDayEN = r("every\\s+(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\\b")
 
     private static let recIntervalPatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
@@ -499,7 +503,7 @@ public struct InputParser {
         (r("every\\s+(\\d+)\\s+years?"), .yearly)
     ]
 
-    private static let recWeeklyDayJA = r("毎週\\s*([月火水木金土日])曜日?")
+    private static let recWeeklyDayJA = r("毎週\\s*([月火水木金土日]+)(?:曜日?)?")
 
     private static let recSimplePatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
         (r("(每天|每日|天天|每一天|毎日|daily|every\\s*day|everyday)"), .daily),
