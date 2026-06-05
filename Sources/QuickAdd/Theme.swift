@@ -41,6 +41,7 @@ enum Theme {
     static let userDefaultsDefaultList = "defaultReminderList"
     static let userDefaultsDefaultCalendar = "defaultCalendarName"
     static let userDefaultsAllDayHour = "allDayReminderHour"
+    static let userDefaultsEventAlarmMinutes = "defaultEventAlarmMinutes"
     static let userDefaultsUseAI = "useAppleIntelligence"
 }
 

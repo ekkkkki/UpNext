@@ -8,6 +8,8 @@ struct SettingsView: View {
     @AppStorage(Theme.userDefaultsDefaultList) private var defaultList = ""
     @AppStorage(Theme.userDefaultsDefaultCalendar) private var defaultCalendar = ""
     @AppStorage(Theme.userDefaultsUseAI) private var useAI = false
+    @AppStorage(Theme.userDefaultsAllDayHour) private var allDayHour = 9
+    @AppStorage(Theme.userDefaultsEventAlarmMinutes) private var eventAlarmMinutes = 5
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var shortcut = ShortcutStore.current
 
@@ -39,7 +41,19 @@ struct SettingsView: View {
                         Text(cal.title).tag(cal.title)
                     }
                 }
-                Text("Override per item with ~ListName in the text.")
+                Picker("All-day reminders alert at", selection: $allDayHour) {
+                    ForEach(Array(stride(from: 6, through: 22, by: 1)), id: \.self) { h in
+                        Text(String(format: "%02d:00", h)).tag(h)
+                    }
+                }
+                Picker("Default event alert", selection: $eventAlarmMinutes) {
+                    Text("None").tag(-1)
+                    Text("At start time").tag(0)
+                    Text("5 minutes before").tag(5)
+                    Text("15 minutes before").tag(15)
+                    Text("30 minutes before").tag(30)
+                }
+                Text("Override per item with ~ListName, or “提前30分钟 / 1 day before” for a custom alert.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 

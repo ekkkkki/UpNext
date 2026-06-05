@@ -16,6 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private weak var agendaHintItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UserDefaults.standard.register(defaults: [
+            Theme.userDefaultsAllDayHour: 9,
+            Theme.userDefaultsEventAlarmMinutes: 5
+        ])
         NSApp.setActivationPolicy(.accessory) // menu-bar agent, no Dock icon
 
         // Render marketing screenshots (no permissions needed).
