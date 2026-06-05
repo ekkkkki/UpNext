@@ -45,7 +45,8 @@ public struct InputParser {
             }
         }
 
-        // 2) Notes: text after a " // " separator or a newline.
+        // 2) Notes: text after a " // " separator (a bare newline is NOT a separator, so
+        //    multi-line addresses stay intact).
         if let notesRange = Self.notesSeparator.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
             let notesStart = notesRange.range.location
             let after = NSRange(location: notesRange.range.location + notesRange.range.length,
@@ -67,6 +68,9 @@ public struct InputParser {
         if item.priority == .none, let kw = Self.matchPriorityKeyword(masked) {
             item.priority = kw.priority
             addHighlight(kw.range, .priority)
+            // Strip a standalone keyword token ("buy milk urgent" → "buy milk"); keep an
+            // embedded one ("重要会议" stays intact).
+            if Self.isStandaloneToken(kw.range, in: masked) { mask(kw.range) }
         }
 
         // 4) List: ~Name
@@ -266,6 +270,16 @@ public struct InputParser {
 
     private static let highPriorityKeyword = r("(紧急|緊急|重要|急ぎ|至急|大事|要紧|urgent|asap|important|critical)")
     private static let lowPriorityKeyword = r("(不急|低优先级|低優先|low\\s*priority|whenever|someday)")
+
+    /// True if `range` is bounded by whitespace or the string edges (a standalone word).
+    private static func isStandaloneToken(_ range: NSRange, in s: NSMutableString) -> Bool {
+        func isBoundary(_ i: Int) -> Bool {
+            guard i >= 0, i < s.length else { return true }
+            guard let scalar = Unicode.Scalar(s.character(at: i)) else { return false }
+            return CharacterSet.whitespacesAndNewlines.contains(scalar)
+        }
+        return isBoundary(range.location - 1) && isBoundary(range.location + range.length)
+    }
 
     private static func matchPriorityKeyword(_ s: NSMutableString) -> (range: NSRange, priority: Priority)? {
         let str = s.copyString

@@ -377,6 +377,46 @@ do {
     h.eq(p.startDate, ymd(2026, 6, 6, 14, 0), "午後 -> 14:00")
 }
 
+h.group("Robustness & combined")
+do {
+    let p = parse("")
+    h.eq(p.title, "", "empty input")
+    h.eq(p.kind, .reminder, "empty -> reminder")
+    h.ok(p.startDate == nil, "no date")
+}
+do {
+    let p = parse("!!!")
+    h.eq(p.priority, .high, "only priority token")
+    h.eq(p.title, "", "empty title")
+}
+do {
+    let p = parse("~Work")
+    h.eq(p.listName, "Work", "only a list")
+    h.eq(p.title, "", "empty title")
+}
+do {
+    // Everything at once.
+    let p = parse("buy milk 明天 3pm urgent ~Groceries #shop 提前1小时")
+    h.eq(p.title, "buy milk", "combined: title")
+    h.eq(p.kind, .reminder, "combined: reminder")
+    h.eq(p.startDate, ymd(2026, 6, 6, 15, 0), "combined: tomorrow 3pm")
+    h.eq(p.priority, .high, "combined: urgent -> high")
+    h.eq(p.listName, "Groceries", "combined: list")
+    h.eq(Set(p.tags), Set(["shop"]), "combined: tag")
+    h.eq(p.leadTimeSeconds, 3600, "combined: lead 1h")
+}
+do {
+    // Event combined.
+    let p = parse("团队评审 周五 2-3pm ~Work !! 提前15分钟 // 准备材料")
+    h.eq(p.kind, .event, "combined event")
+    h.eq(p.startDate, ymd(2026, 6, 5, 14, 0), "combined: Fri 2pm")
+    h.eq(p.endDate, ymd(2026, 6, 5, 15, 0), "combined: 3pm end")
+    h.eq(p.priority, .medium, "combined: !! -> medium")
+    h.eq(p.leadTimeSeconds, 900, "combined: lead 15m")
+    h.eq(p.notes, "准备材料", "combined: notes")
+    h.eq(p.title, "团队评审", "combined: title")
+}
+
 h.group("Search query")
 do {
     let q = SearchQueryParser.parse("团队 is:event due:week ~Work #urgent !!")
