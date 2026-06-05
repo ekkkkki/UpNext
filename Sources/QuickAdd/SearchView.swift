@@ -57,7 +57,8 @@ struct SearchView: View {
                             SearchRow(hit: hit,
                                       isSelected: index == model.selectedIndex,
                                       onToggle: { model.toggleComplete(hit) },
-                                      onDelete: { model.delete(hit) })
+                                      onDelete: { model.delete(hit) },
+                                      onReschedule: { model.reschedule(hit, to: $0) })
                                 .id(index)
                             Divider().opacity(0.35).padding(.leading, 44)
                         }
@@ -85,7 +86,8 @@ struct SearchView: View {
                     ForEach(model.agenda) { hit in
                         SearchRow(hit: hit,
                                   onToggle: { model.agendaToggle(hit) },
-                                  onDelete: { model.agendaDelete(hit) })
+                                  onDelete: { model.agendaDelete(hit) },
+                                  onReschedule: { model.reschedule(hit, to: $0) })
                         Divider().opacity(0.35).padding(.leading, 44)
                     }
                 }
@@ -153,6 +155,7 @@ struct SearchRow: View {
     var isSelected = false
     var onToggle: () -> Void
     var onDelete: () -> Void
+    var onReschedule: ((Date) -> Void)? = nil
     @State private var hovering = false
 
     var body: some View {
@@ -190,6 +193,22 @@ struct SearchRow: View {
         .contentShape(Rectangle())
         .background(rowBackground)
         .onHover { hovering = $0 }
+        .contextMenu { contextMenu }
+    }
+
+    @ViewBuilder
+    private var contextMenu: some View {
+        if hit.kind == .reminder, let onReschedule {
+            let cal = Calendar.current
+            let today = cal.startOfDay(for: Date())
+            Button(L("Today", "今天", "今日")) { onReschedule(today) }
+            Button(L("Tomorrow", "明天", "明日")) { onReschedule(cal.date(byAdding: .day, value: 1, to: today) ?? today) }
+            Button(L("Next week", "下周", "来週")) { onReschedule(cal.date(byAdding: .day, value: 7, to: today) ?? today) }
+            Divider()
+            Button(hit.isCompleted ? L("Mark incomplete", "标记未完成", "未完了にする")
+                                   : L("Complete", "完成", "完了")) { onToggle() }
+        }
+        Button(L("Delete", "删除", "削除"), role: .destructive) { onDelete() }
     }
 
     @ViewBuilder

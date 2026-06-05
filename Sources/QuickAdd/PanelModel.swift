@@ -143,6 +143,12 @@ final class PanelModel: ObservableObject {
         agenda.removeAll { $0.id == hit.id }
     }
 
+    func reschedule(_ hit: SearchHit, to date: Date) {
+        eventKit.reschedule(hit, to: date)
+        loadAgenda()
+        refreshSearch()
+    }
+
     // MARK: Search flow
 
     private func scheduleSearch() {

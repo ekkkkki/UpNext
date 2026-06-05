@@ -230,6 +230,26 @@ final class EventKitService: ObservableObject {
         }
     }
 
+    /// Move a reminder's due date to `newDay`, preserving its time-of-day if it had one.
+    func reschedule(_ hit: SearchHit, to newDay: Date) {
+        guard let reminder = hit.reminder else { return }
+        let cal = Calendar.current
+        let hadTime = reminder.dueDateComponents?.hour != nil
+        var comps = cal.dateComponents([.year, .month, .day], from: newDay)
+        if hadTime {
+            comps.hour = reminder.dueDateComponents?.hour
+            comps.minute = reminder.dueDateComponents?.minute
+        }
+        reminder.dueDateComponents = comps
+        reminder.isCompleted = false
+        reminder.alarms?.forEach { reminder.removeAlarm($0) }
+        if let due = cal.date(from: comps) {
+            let alarmDate = hadTime ? due : (cal.date(bySettingHour: 9, minute: 0, second: 0, of: due) ?? due)
+            reminder.addAlarm(EKAlarm(absoluteDate: alarmDate))
+        }
+        try? store.save(reminder, commit: true)
+    }
+
     func delete(_ hit: SearchHit) {
         if let reminder = hit.reminder {
             try? store.remove(reminder, commit: true)
