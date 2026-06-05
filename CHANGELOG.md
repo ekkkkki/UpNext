@@ -2,6 +2,17 @@
 
 All notable changes to QuickAdd. Dates are when the work landed on `main`.
 
+## v1.2.0 — 2026-06-05
+
+- **Explicit `@place` location** marker (e.g. `lunch tomorrow 12pm @Blue Bottle`),
+  overriding cue detection; ignores email addresses.
+- **Menu-bar today-count badge** — the icon shows how many items are due today
+  (refreshed on open and every 5 minutes).
+- Standalone priority keywords are now stripped from the title (`buy milk urgent` →
+  `buy milk`), while embedded ones stay (`重要会议`).
+- Menu items and the today/next header are fully localized (en/zh/ja).
+- Parser suite at 223 deterministic checks (incl. adversarial/combined inputs).
+
 ## v1.1.0 — 2026-06-05
 
 A large parsing + UX iteration. The natural-language parser grew from 124 to 215
