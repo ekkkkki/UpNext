@@ -2,6 +2,13 @@
 
 All notable changes to QuickAdd. Dates are when the work landed on `main`.
 
+## v1.3.0 — 2026-06-05
+
+- **Multi-weekday recurrence**: `每周一三五` / `毎週月水金` / `every mon wed fri` →
+  weekly on several days at once.
+- Titles drop dangling date-connector words ("meeting on Friday" → "meeting").
+- Parser at 235 deterministic checks.
+
 ## v1.2.0 — 2026-06-05
 
 - **Explicit `@place` location** marker (e.g. `lunch tomorrow 12pm @Blue Bottle`),
