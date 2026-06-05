@@ -228,6 +228,14 @@ do {
 h.eq(parse("毎日 散歩 5回").recurrence?.occurrenceCount, 5, "5回 -> count 5 (JA)")
 h.eq(parse("daily standup 10 times").recurrence?.occurrenceCount, 10, "10 times -> count 10")
 h.ok(parse("每天 喝水").recurrence?.occurrenceCount == nil, "no count -> nil")
+do {
+    let p = parse("每天 喝水 持续两周")
+    h.eq(p.recurrence?.frequency, .daily, "daily")
+    h.eq(p.recurrence?.endDate, ymd(2026, 6, 19, 0, 0), "持续两周 -> end +14d")
+}
+h.eq(parse("daily standup for 2 weeks").recurrence?.endDate, ymd(2026, 6, 19, 0, 0), "for 2 weeks -> end")
+h.eq(parse("毎日 散歩 2週間").recurrence?.endDate, ymd(2026, 6, 19, 0, 0), "2週間 -> end (JA)")
+h.eq(parse("every day for 3 months").recurrence?.endDate, ymd(2026, 9, 5, 0, 0), "for 3 months -> end")
 
 h.group("Title cleanup & highlights")
 do {

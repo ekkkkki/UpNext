@@ -69,12 +69,16 @@ public struct RecurrenceRule: Equatable, Codable, Sendable {
     public var weekdays: [Int]
     /// Stop after this many occurrences (EKRecurrenceEnd). nil = forever.
     public var occurrenceCount: Int?
+    /// Stop on/after this date (EKRecurrenceEnd). Takes effect if occurrenceCount is nil.
+    public var endDate: Date?
 
-    public init(frequency: RecurrenceFrequency, interval: Int = 1, weekdays: [Int] = [], occurrenceCount: Int? = nil) {
+    public init(frequency: RecurrenceFrequency, interval: Int = 1, weekdays: [Int] = [],
+                occurrenceCount: Int? = nil, endDate: Date? = nil) {
         self.frequency = frequency
         self.interval = max(1, interval)
         self.weekdays = weekdays
         self.occurrenceCount = occurrenceCount
+        self.endDate = endDate
     }
 
     public var humanDescription: String {

@@ -204,6 +204,7 @@ final class EventKitService: ObservableObject {
         }
         let days = rule.weekdays.compactMap { EKWeekday(rawValue: $0) }.map { EKRecurrenceDayOfWeek($0) }
         let end = rule.occurrenceCount.map { EKRecurrenceEnd(occurrenceCount: $0) }
+            ?? rule.endDate.map { EKRecurrenceEnd(end: $0) }
         return EKRecurrenceRule(
             recurrenceWith: frequency,
             interval: max(1, rule.interval),

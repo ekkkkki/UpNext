@@ -102,6 +102,13 @@ public struct InputParser {
             addHighlight(cnt.range, .recurrence)
             mask(cnt.range)
         }
+        // 6a2) Recurrence end after a duration ("for 2 weeks" / "持续两周" / "2週間").
+        var recurrenceEndSpec: (component: Calendar.Component, value: Int)?
+        if item.recurrence != nil, let forSpec = Self.matchRecurrenceFor(masked) {
+            recurrenceEndSpec = (forSpec.component, forSpec.value)
+            addHighlight(forSpec.range, .recurrence)
+            mask(forSpec.range)
+        }
 
         // 6b) Lead-time alarm ("提前30分钟" / "30分前" / "1 day before"). Extracted before
         //     the date stage so its number isn't mistaken for an event duration.
@@ -173,6 +180,12 @@ public struct InputParser {
                 item.startDate = calendar.startOfDay(for: now)
             }
             item.isAllDay = !item.hasTime
+        }
+
+        // Resolve a duration-based recurrence end now that the start is known.
+        if let spec = recurrenceEndSpec, item.recurrence != nil {
+            let base = item.startDate ?? calendar.startOfDay(for: now)
+            item.recurrence?.endDate = calendar.date(byAdding: spec.component, value: spec.value, to: base)
         }
 
         // 8) Title = whatever is left. If empty but we found a place, name it after
@@ -324,6 +337,32 @@ public struct InputParser {
             }
         }
         return nil
+    }
+
+    // MARK: - Recurrence end ("for N weeks")
+
+    private static let recForEN = r("\\bfor\\s+(\\d+)\\s+(day|week|month)s?\\b")
+    private static let recForZH = r("持续\\s*([0-9零〇一二两三四五六七八九十]+)\\s*(天|周|星期|个月|月)")
+    private static let recForJA = r("([0-9一二三四五六七八九十]+)\\s*(日間|週間|ヶ月間|か月間)")
+
+    private static func matchRecurrenceFor(_ s: NSMutableString) -> (range: NSRange, component: Calendar.Component, value: Int)? {
+        let str = s.copyString
+        let full = s.fullRange
+        func parse(_ regex: NSRegularExpression) -> (NSRange, String, Int)? {
+            guard let m = regex.firstMatch(in: str, options: [], range: full) else { return nil }
+            let numStr = s.substring(with: m.range(at: 1))
+            guard let n = Int(numStr) ?? ChineseNumber.parse(numStr), n > 0 else { return nil }
+            return (m.range, s.substring(with: m.range(at: 2)), n)
+        }
+        let hit = parse(recForEN) ?? parse(recForZH) ?? parse(recForJA)
+        guard let (range, unit, n) = hit else { return nil }
+        if unit.contains("week") || unit.contains("周") || unit.contains("星期") || unit.contains("週") {
+            return (range, .day, n * 7)
+        }
+        if unit.contains("month") || unit.contains("月") {
+            return (range, .month, n)
+        }
+        return (range, .day, n) // day / 天 / 日間
     }
 
     // MARK: - Lead-time alarm
