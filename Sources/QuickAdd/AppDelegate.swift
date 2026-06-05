@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem?
     private weak var shortcutHintItem: NSMenuItem?
     private weak var agendaHintItem: NSMenuItem?
+    private var badgeTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         UserDefaults.standard.register(defaults: [
@@ -66,6 +67,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             onboardingController.show()
         }
+
+        // Keep the menu-bar today-count badge fresh.
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            await updateAgendaHint()
+        }
+        badgeTimer = Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.updateAgendaHint() }
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool { true }
@@ -91,29 +101,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         agendaHintItem = agendaHint
         menu.addItem(.separator())
 
-        let add = NSMenuItem(title: "Quick Add", action: #selector(showAdd), keyEquivalent: "")
+        let add = NSMenuItem(title: L("Quick Add", "快速添加", "クイック追加"), action: #selector(showAdd), keyEquivalent: "")
         add.target = self
         menu.addItem(add)
-        let search = NSMenuItem(title: "Search…", action: #selector(showSearch), keyEquivalent: "")
+        let search = NSMenuItem(title: L("Search…", "搜索…", "検索…"), action: #selector(showSearch), keyEquivalent: "")
         search.target = self
         menu.addItem(search)
         menu.addItem(.separator())
 
-        let hint = NSMenuItem(title: "Shortcut: \(ShortcutStore.current.display)", action: nil, keyEquivalent: "")
+        let hint = NSMenuItem(title: "\(L("Shortcut", "快捷键", "ショートカット")): \(ShortcutStore.current.display)", action: nil, keyEquivalent: "")
         hint.isEnabled = false
         menu.addItem(hint)
         shortcutHintItem = hint
         menu.addItem(.separator())
 
-        let settings = NSMenuItem(title: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        let settings = NSMenuItem(title: L("Settings…", "设置…", "設定…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
-        let about = NSMenuItem(title: "About QuickAdd", action: #selector(showAbout), keyEquivalent: "")
+        let about = NSMenuItem(title: L("About QuickAdd", "关于 QuickAdd", "QuickAdd について"), action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: "Quit QuickAdd", action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L("Quit QuickAdd", "退出 QuickAdd", "QuickAdd を終了"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
 
@@ -128,16 +138,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func updateAgendaHint() async {
         eventKit.refreshAuthorization()
         guard eventKit.remindersAuthorized || eventKit.calendarAuthorized else {
-            agendaHintItem?.title = "Grant access to see today"
+            agendaHintItem?.title = L("Grant access to see today", "授权后显示今日待办", "許可すると今日を表示")
+            statusItem?.button?.title = ""
             return
         }
         let items = await eventKit.agenda()
-        guard !items.isEmpty else { agendaHintItem?.title = "Nothing due today 🎉"; return }
-        var title = "Today: \(items.count) item\(items.count == 1 ? "" : "s")"
+        statusItem?.button?.title = items.isEmpty ? "" : " \(items.count)"
+        guard !items.isEmpty else {
+            agendaHintItem?.title = L("Nothing due today 🎉", "今天没有待办 🎉", "今日の予定なし 🎉")
+            return
+        }
+        var title = L("Today: \(items.count)", "今天：\(items.count) 项", "今日：\(items.count) 件")
         if let next = items.first(where: { ($0.date ?? .distantPast) >= Date() }), let date = next.date {
-            let f = DateFormatter(); f.dateFormat = "HH:mm"
+            let f = DateFormatter()
+            f.locale = L10n.locale
+            f.dateFormat = L10n.uses24Hour ? "HH:mm" : "h:mm a"
             let name = next.title.count > 22 ? String(next.title.prefix(22)) + "…" : next.title
-            title += "  ·  next: \(name) \(f.string(from: date))"
+            title += "  ·  " + L("next: \(name) \(f.string(from: date))",
+                                 "下一个：\(name) \(f.string(from: date))",
+                                 "次：\(name) \(f.string(from: date))")
         }
         agendaHintItem?.title = title
     }
