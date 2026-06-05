@@ -133,14 +133,20 @@ Word order is flexible — put the date/time wherever it reads naturally.
 
 **Tokens**
 
-- **Priority**: `!` low · `!!` medium · `!!!` high · or `p1`/`p2`/`p3`
+- **Priority**: `!` low · `!!` medium · `!!!` high · `p1`/`p2`/`p3` · or keywords `urgent` / `紧急` / `重要` / `至急`
 - **List / calendar**: `~ListName` (e.g. `~Work`)
 - **Tags**: `#tag`
-- **Notes**: everything after ` // ` or a newline
-- **Recurrence**: `每天 / daily`, `每周一 / every monday`, `每月 / monthly`, `every 3 days`, …
-- **Times**: `下午3点`, `晚上8点半`, `中午`, `3pm`, `3:30pm`, `15:00`, `noon`
-- **Durations**: `30min`, `1h`, `1.5h`, `半小时`, `两个小时`, `half an hour`
-- **Relative**: `30分钟后`, `2小时后`, `in 30 min`, `in 2 hours`
+- **Notes**: everything after ` // `
+- **Times**: `下午3点`, `晚上8点半`, `中午`, `午後3時`, `3pm`, `3:30pm`, `15:00`, `noon`
+- **Vague times** (default clock): `下午` → 14:00, `早上`/`morning` → 9:00, `tonight`/`今晚` → 19:00
+- **Durations**: `30min`, `1h`, `1.5h`, `半小时`, `两个小时`, `1時間半`, `half an hour`
+- **Lead-time reminder**: `提前30分钟`, `30分前`, `1 day before`
+- **All-day**: `全天`, `all day`, `終日`
+- **Recurrence**: `每天 / daily`, `每周一 / every monday`, `毎週月曜`, `every 3 days` — plus end conditions
+  `共7次 / 10 times` and `持续两周 / for 2 weeks`
+- **Relative**: `30分钟后`, `in 2 hours`, `in 3 days`, `两周后 / in 2 weeks`, `3个月后 / in 3 months`
+
+Works the same in **中文 / 日本語 / English** (weekdays, periods, recurrence, durations all localized).
 
 ### Search syntax
 
