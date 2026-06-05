@@ -93,6 +93,48 @@ enum RenderShots {
             m.setPreviewResults(sampleHitsEN())
         }
 
+        // Chinese set for the 中文 landing page.
+        shot("hero-zh") { m in
+            m.reset()
+            m.input = "客户会议 明天下午3点 北京朝阳区建国路88号 SOHO现代城15层"
+        }
+        shot("add-reminder-zh") { m in
+            m.reset()
+            m.input = "买菜 ~杂货 #周末 明天 !!"
+        }
+        shot("add-event-zh") { m in
+            m.reset()
+            m.input = "团队同步 明天下午2点到3点 ~工作"
+        }
+        shot("search-zh") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.mode = .search
+            m.searchText = "due:week"
+            m.setPreviewResults(sampleHits())
+        }
+
+        // Japanese set for the 日本語 landing page.
+        shot("hero-ja") { m in
+            m.reset()
+            m.input = "クライアント会議 明日15時 東京都港区六本木6-10-1 六本木ヒルズ森タワー20階"
+        }
+        shot("add-reminder-ja") { m in
+            m.reset()
+            m.input = "牛乳を買う ~買い物 #週末 明日 !!"
+        }
+        shot("add-event-ja") { m in
+            m.reset()
+            m.input = "チーム会議 明日14時-15時 ~仕事"
+        }
+        shot("search-ja") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.mode = .search
+            m.searchText = "due:week"
+            m.setPreviewResults(sampleHitsJA())
+        }
+
         print("rendered \(count) screenshot(s) → \(outDir)")
         return count > 0 ? 0 : 1
     }
@@ -154,6 +196,33 @@ enum RenderShots {
                       date: at(3, 15, 0), endDate: at(3, 16, 0), isAllDay: false, isCompleted: false,
                       priority: .none, calendarName: "Travel", calendarColor: .systemPurple,
                       location: "Grand Hyatt, 6th Ave", reminder: nil, event: nil)
+        ]
+    }
+
+    private static func sampleHitsJA() -> [SearchHit] {
+        let cal = Calendar.current
+        let now = Date()
+        func at(_ dayOffset: Int, _ h: Int, _ m: Int) -> Date {
+            let base = cal.date(byAdding: .day, value: dayOffset, to: cal.startOfDay(for: now))!
+            return cal.date(byAdding: DateComponents(hour: h, minute: m), to: base)!
+        }
+        return [
+            SearchHit(id: "1", title: "チーム定例", notes: nil, kind: .event,
+                      date: at(1, 10, 0), endDate: at(1, 11, 0), isAllDay: false, isCompleted: false,
+                      priority: .none, calendarName: "仕事", calendarColor: .systemBlue,
+                      location: "会議室4A", reminder: nil, event: nil),
+            SearchHit(id: "2", title: "牛乳と卵を買う", notes: nil, kind: .reminder,
+                      date: at(0, 18, 0), endDate: nil, isAllDay: false, isCompleted: false,
+                      priority: .medium, calendarName: "買い物", calendarColor: .systemGreen,
+                      location: nil, reminder: nil, event: nil),
+            SearchHit(id: "3", title: "四半期レポート提出", notes: nil, kind: .reminder,
+                      date: at(-1, 17, 0), endDate: nil, isAllDay: false, isCompleted: false,
+                      priority: .high, calendarName: "仕事", calendarColor: .systemOrange,
+                      location: nil, reminder: nil, event: nil),
+            SearchHit(id: "4", title: "ホテルチェックイン", notes: nil, kind: .event,
+                      date: at(3, 15, 0), endDate: at(3, 16, 0), isAllDay: false, isCompleted: false,
+                      priority: .none, calendarName: "旅行", calendarColor: .systemPurple,
+                      location: "東京ステーションホテル", reminder: nil, event: nil)
         ]
     }
 }

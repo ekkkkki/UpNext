@@ -256,6 +256,41 @@ do {
     h.ok(p.location == nil, "no location")
 }
 
+h.group("Japanese")
+do {
+    let p = parse("月曜 歯医者")
+    h.eq(p.startDate, ymd(2026, 6, 8, 0, 0), "月曜 -> next Monday")
+    h.eq(p.title, "歯医者", "title")
+}
+do {
+    let p = parse("午後3時 会議 30分")
+    h.eq(p.kind, .event, "午後 + 会議 + 30分 -> event")
+    h.eq(p.startDate, ymd(2026, 6, 5, 15, 0), "午後3時 = 15:00")
+    h.eq(p.endDate, ymd(2026, 6, 5, 15, 30), "30分 duration")
+    h.eq(p.title, "会議", "title")
+}
+h.eq(parse("明後日 レポート提出").startDate, ymd(2026, 6, 7, 0, 0), "明後日 -> +2 days")
+h.eq(parse("来週 出張").startDate, ymd(2026, 6, 15, 0, 0), "来週 -> next Monday")
+do {
+    let p = parse("毎週月曜 午前10時 定例")
+    h.eq(p.recurrence?.frequency, .weekly, "毎週 weekly")
+    h.eq(p.recurrence?.weekdays ?? [], [2], "on Monday")
+    h.eq(p.startDate.map { cal.dateComponents([.hour, .minute], from: $0) }, DateComponents(hour: 10, minute: 0), "午前10時")
+    h.eq(p.title, "定例", "title")
+}
+do {
+    let p = parse("毎日 水を飲む")
+    h.eq(p.recurrence?.frequency, .daily, "毎日 daily")
+    h.eq(p.title, "水を飲む", "title")
+}
+do {
+    let p = parse("明日 9時 作業 1時間半")
+    h.eq(p.kind, .event, "1時間半 -> event")
+    h.eq(p.startDate, ymd(2026, 6, 6, 9, 0), "明日 9時")
+    h.eq(p.endDate, ymd(2026, 6, 6, 10, 30), "+90 min")
+}
+h.eq(parse("夜8時 ジョギング").startDate, ymd(2026, 6, 5, 20, 0), "夜8時 = 20:00")
+
 h.group("Search query")
 do {
     let q = SearchQueryParser.parse("团队 is:event due:week ~Work #urgent !!")

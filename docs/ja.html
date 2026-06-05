@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>QuickAdd — どこからでもリマインダー・カレンダー予定を一発登録 · macOS</title>
+<meta name="description" content="無料・オープンソースの macOS メニューバーアプリ。⇧⌘A を押して普通の言葉で入力すると、リマインダーかカレンダー予定かを自動判別し、時刻・場所・優先度・繰り返しを解析します。" />
+<meta property="og:title" content="QuickAdd — ワンキーでリマインダーと予定を登録" />
+<meta property="og:description" content="ネイティブ・無料・オープンソースの macOS クイック入力。自然言語パースに対応。" />
+<meta property="og:image" content="shots/hero-ja.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<style>
+  :root { --bg:#0c0d14; --bg2:#15101f; --card:#16171f; --text:#e8e8ee; --muted:#a0a0b0; --accent:#7c6cff; --accent2:#b65cff; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font:16px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;
+         color:var(--text); background:linear-gradient(150deg,var(--bg),var(--bg2)); min-height:100vh; }
+  .wrap { max-width:980px; margin:0 auto; padding:0 24px; }
+  header { text-align:center; padding:72px 0 40px; }
+  .logo { font-size:14px; letter-spacing:.3em; color:var(--muted); text-transform:uppercase; }
+  h1 { font-size:46px; line-height:1.25; margin:14px 0 8px; letter-spacing:-.01em; }
+  h1 .grad { background:linear-gradient(90deg,var(--accent),var(--accent2)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .sub { font-size:19px; color:var(--muted); max-width:720px; margin:0 auto 28px; }
+  .cta { display:inline-flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .btn { display:inline-block; padding:13px 26px; border-radius:12px; font-weight:600; text-decoration:none; transition:.15s; }
+  .btn-primary { background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#fff; }
+  .btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
+  .btn-ghost { background:#ffffff14; color:var(--text); border:1px solid #ffffff22; }
+  .btn-ghost:hover { background:#ffffff22; }
+  .langbar { display:flex; gap:6px; justify-content:center; margin-bottom:22px; }
+  .langbar a { font-size:13px; color:var(--muted); text-decoration:none; padding:5px 12px; border-radius:8px; }
+  .langbar a:hover { background:#ffffff14; color:var(--text); }
+  .langbar a.active { background:#ffffff1f; color:var(--text); font-weight:600; }
+  .shot { display:block; width:100%; border-radius:16px; margin:44px 0; box-shadow:0 30px 80px #0008; }
+  .kbd { font-family:ui-monospace,monospace; background:#ffffff14; border:1px solid #ffffff22; border-radius:6px; padding:2px 7px; font-size:.85em; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin:24px 0; }
+  .card { background:var(--card); border:1px solid #ffffff12; border-radius:14px; padding:22px; }
+  .card h3 { font-size:17px; margin-bottom:6px; }
+  .card p { color:var(--muted); font-size:14px; }
+  h2 { font-size:27px; text-align:center; margin:64px 0 8px; }
+  .center { text-align:center; color:var(--muted); }
+  table.ex { width:100%; border-collapse:collapse; margin:22px 0; font-size:14.5px; }
+  table.ex td { padding:11px 14px; border-bottom:1px solid #ffffff12; vertical-align:top; }
+  table.ex td.in { font-family:ui-monospace,"Hiragino Sans",monospace; color:#d8d2ff; }
+  footer { text-align:center; color:var(--muted); padding:60px 0 40px; font-size:14px; }
+  footer a { color:var(--accent); text-decoration:none; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  @media (max-width:680px){ h1{font-size:32px} .two{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="langbar"><a href="index.html">English</a><a href="zh.html">中文</a><a href="ja.html" class="active">日本語</a></div>
+    <div class="logo">⌘ QuickAdd</div>
+    <h1>思いついたことを、<br><span class="grad">ワンキーで。</span></h1>
+    <p class="sub">無料・オープンソースの macOS メニューバーアプリ。どの画面でも <span class="kbd">⇧⌘A</span> を押して、
+      思ったまま入力するだけ。時刻・場所・優先度・繰り返しまで埋めて、リマインダー / カレンダーに登録します。</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="https://github.com/ekkkkki/QuickAdd/releases/latest">macOS 版をダウンロード</a>
+      <a class="btn btn-ghost" href="https://github.com/ekkkkki/QuickAdd">GitHub で見る</a>
+    </div>
+  </header>
+
+  <img class="shot" src="shots/hero-ja.png" alt="入力した一行を、場所つきのカレンダー予定に変換する QuickAdd" />
+
+  <h2>自然に入力。あとは自動で。</h2>
+  <p class="center">時間範囲か所要時間があれば予定。場所や会議の語があれば予定。それ以外はリマインダー。</p>
+  <table class="ex">
+    <tr><td class="in">明日15時 会議 30分</td><td>→ カレンダー予定 15:00–15:30</td></tr>
+    <tr><td class="in">明日14時-15時 1on1</td><td>→ 時間範囲つきの予定</td></tr>
+    <tr><td class="in">クライアント会議 明日15時 六本木6-10-1</td><td>→ 予定、住所 → 場所 📍</td></tr>
+    <tr><td class="in">牛乳を買う ~買い物 #週末 !!</td><td>→ 高優先度のリマインダー（リスト・タグつき）</td></tr>
+    <tr><td class="in">毎週月曜 午前10時 定例</td><td>→ 毎週くり返すリマインダー</td></tr>
+  </table>
+
+  <div class="two">
+    <img class="shot" style="margin:8px 0" src="shots/add-reminder-ja.png" alt="リマインダーを追加" />
+    <img class="shot" style="margin:8px 0" src="shots/add-event-ja.png" alt="予定を追加" />
+  </div>
+
+  <h2>特長</h2>
+  <div class="grid">
+    <div class="card"><h3>⌨️ グローバルショートカット</h3><p>Spotlight 風のパネルがどのアプリの上にも出て、終わると元のアプリにフォーカスを戻します。</p></div>
+    <div class="card"><h3>🧠 自然言語</h3><p>日付・時刻・所要時間・範囲・繰り返し・優先度を、入力した言葉から解析します。</p></div>
+    <div class="card"><h3>📍 かしこい判別</h3><p>住所つきの会議は「予定」だと判断し、場所を自動で取り出します。</p></div>
+    <div class="card"><h3>🔎 横断検索</h3><p>リマインダーとカレンダーをまとめて検索。<span class="kbd">is:event due:week</span> などの絞り込みも。</p></div>
+    <div class="card"><h3>🔒 プライバシー重視</h3><p>すべてローカル。任意でオンデバイスの Apple Intelligence 補正も——データは外に出ません。</p></div>
+    <div class="card"><h3>🆓 無料・オープンソース</h3><p>MIT ライセンス。アカウント不要・追跡なし・サブスクなし。</p></div>
+  </div>
+
+  <img class="shot" src="shots/search-ja.png" alt="リマインダーとカレンダーを横断する検索" />
+
+  <footer>
+    MIT ライセンスの無料・オープンソース · <a href="https://github.com/ekkkkki/QuickAdd">github.com/ekkkkki/QuickAdd</a><br>
+    Apple とは無関係です。リマインダー・カレンダーは Apple Inc. の商標です。
+  </footer>
+</div>
+</body>
+</html>

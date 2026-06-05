@@ -219,7 +219,7 @@ enum DateTimeParser {
             scanner.consume(m.range)
             return DayMatch(date: cal.date(byAdding: .day, value: 3, to: today) ?? today, endDate: nil, range: m.range, eveningHint: false)
         }
-        let dayAfter = re("(后天)")
+        let dayAfter = re("(后天|明後日|あさって)")
         if let m = scanner.firstFree(dayAfter) {
             scanner.consume(m.range)
             return DayMatch(date: cal.date(byAdding: .day, value: 2, to: today) ?? today, endDate: nil, range: m.range, eveningHint: false)
@@ -264,6 +264,18 @@ enum DateTimeParser {
            let name = group(m, 2, in: ns)?.lowercased(), let wd = weekdayMap[name] {
             let prefix = group(m, 1, in: ns)?.lowercased() ?? ""
             let isNext = prefix.contains("next")
+            var date = nextWeekday(wd, from: now, cal: cal, includingToday: true)
+            if isNext { date = cal.date(byAdding: .day, value: 7, to: date) ?? date }
+            scanner.consume(m.range)
+            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
+        }
+
+        // Japanese weekdays: 月曜(日)…日曜(日), with optional 今週 / 来週.
+        let jaWeekday = re("(今週|来週|next|this)?\\s*([月火水木金土日])曜日?")
+        if let m = scanner.firstFree(jaWeekday), let ch = group(m, 2, in: ns)?.first,
+           let wd = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1][ch] {
+            let prefix = group(m, 1, in: ns)?.lowercased() ?? ""
+            let isNext = prefix.contains("来") || prefix.contains("next")
             var date = nextWeekday(wd, from: now, cal: cal, includingToday: true)
             if isNext { date = cal.date(byAdding: .day, value: 7, to: date) ?? date }
             scanner.consume(m.range)
@@ -328,7 +340,7 @@ enum DateTimeParser {
         }
 
         // "下周"/"下个月" without a weekday.
-        let nextWeek = re("(下周|下星期|下个星期|next week)")
+        let nextWeek = re("(下周|下星期|下个星期|next week|来週)")
         if let m = scanner.firstFree(nextWeek) {
             scanner.consume(m.range)
             // Next Monday.
@@ -336,7 +348,7 @@ enum DateTimeParser {
             let date = cal.date(byAdding: .day, value: 7, to: base) ?? base
             return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
         }
-        let nextMonth = re("(下个月|下月|next month)")
+        let nextMonth = re("(下个月|下月|next month|来月)")
         if let m = scanner.firstFree(nextMonth) {
             scanner.consume(m.range)
             let date = cal.date(byAdding: .month, value: 1, to: today) ?? today
@@ -420,17 +432,20 @@ enum DateTimeParser {
 
     private static func adjust(hour: Int, period: String?, cal: Calendar) -> Int {
         guard let p = period?.lowercased(), !p.isEmpty else { return hour }
-        if p.contains("下午") || p == "pm" || p == "p.m." || p == "p" {
+        if p.contains("下午") || p.contains("午後") || p.contains("夕方") || p == "pm" || p == "p.m." || p == "p" {
             return hour < 12 ? hour + 12 : hour
         }
-        if p.contains("晚") || p.contains("傍晚") {
-            if hour == 12 { return 0 }            // 晚上12点 == midnight
+        if p.contains("深夜") {                    // 深夜2時 == 02:00, 深夜12時 == 00:00
+            return hour == 12 ? 0 : hour
+        }
+        if p.contains("晚") || p.contains("傍晚") || p.contains("夜") {
+            if hour == 12 { return 0 }            // 晚上12点 / 夜12時 == midnight
             return hour < 12 ? hour + 12 : hour
         }
-        if p.contains("中午") || p.contains("正午") {
-            return hour < 7 ? hour + 12 : hour     // 中午1点 == 13:00, 中午12点 == 12
+        if p.contains("中午") || p.contains("正午") || p.contains("昼") {
+            return hour < 7 ? hour + 12 : hour     // 中午1点 == 13:00, 昼12時 == 12
         }
-        if p.contains("凌晨") {
+        if p.contains("凌晨") || p.contains("午前") || p.contains("朝") {
             return hour == 12 ? 0 : hour
         }
         if p.contains("上午") || p.contains("早") || p == "am" || p == "a.m." || p == "a" {
@@ -461,7 +476,7 @@ enum DateTimeParser {
         }
 
         // Chinese: (period)? H点 (M分 | 半/一刻/三刻)?
-        let cn = re("(上午|早上|早晨|凌晨|中午|下午|晚上|傍晚)?\\s*(\(cnNum){1,3})\\s*[点點時时]\\s*(?:(\(cnNum){1,3})\\s*分?|(半|一刻|三刻))?")
+        let cn = re("(上午|早上|早晨|凌晨|中午|下午|晚上|傍晚|午前|午後|朝|夜|夕方|正午|昼|深夜)?\\s*(\(cnNum){1,3})\\s*[点點時时]\\s*(?:(\(cnNum){1,3})\\s*分?|(半|一刻|三刻))?")
         if let m = scanner.firstFree(cn), let h = number(group(m, 2, in: ns)) {
             let period = group(m, 1, in: ns)
             let minNum = number(group(m, 3, in: ns))
@@ -542,7 +557,7 @@ enum DateTimeParser {
         }
 
         // Chinese: 下午3点到4点半, 9点-10点, 下午3点到下午5点
-        let cnTime = "(上午|早上|早晨|凌晨|中午|下午|晚上|傍晚)?\\s*(\(cnNum){1,3})\\s*[点點時时]\\s*(?:(\(cnNum){1,3})\\s*分?|(半|一刻|三刻))?"
+        let cnTime = "(上午|早上|早晨|凌晨|中午|下午|晚上|傍晚|午前|午後|朝|夜|夕方|正午|昼|深夜)?\\s*(\(cnNum){1,3})\\s*[点點時时]\\s*(?:(\(cnNum){1,3})\\s*分?|(半|一刻|三刻))?"
         let cn = re("\(cnTime)\\s*(?:到|至|-|~)\\s*\(cnTime)")
         if let m = scanner.firstFree(cn),
            let h1 = number(group(m, 2, in: ns)), let h2 = number(group(m, 6, in: ns)) {
@@ -575,6 +590,14 @@ enum DateTimeParser {
             return DurationMatch(seconds: TimeInterval(n * 3600 + 1800), range: m.range)
         }
 
+        // Japanese "X時間半" = X hours and a half.
+        let andHalfJA = re("(\(cnNum)+)?\\s*時間半")
+        if let m = scanner.firstFree(andHalfJA) {
+            let n = number(group(m, 1, in: ns)) ?? 1
+            scanner.consume(m.range)
+            return DurationMatch(seconds: TimeInterval(n * 3600 + 1800), range: m.range)
+        }
+
         // 一刻钟 = 15 min
         let quarterCN = re("(一刻钟|一刻鐘)")
         if let m = scanner.firstFree(quarterCN) {
@@ -583,7 +606,7 @@ enum DateTimeParser {
         }
 
         // Chinese hours: 1小时, 1.5小时, 两个小时, 半小时, 半个钟头
-        let cnHour = re("(\(cnNum)+(?:\\.\\d+)?|半)\\s*(?:个)?\\s*(?:小时|小時|钟头|鐘頭)")
+        let cnHour = re("(\(cnNum)+(?:\\.\\d+)?|半)\\s*(?:个)?\\s*(?:小时|小時|钟头|鐘頭|時間)")
         if let m = scanner.firstFree(cnHour) {
             let token = group(m, 1, in: ns) ?? ""
             let hours = parseDecimal(token)
@@ -647,9 +670,9 @@ enum DateTimeParser {
         }
 
         // Chinese: "30分钟后", "2小时后", "半小时后"
-        let cn = re("(\(cnNum)+(?:\\.\\d+)?|半)\\s*(?:个)?\\s*(小时|小時|钟头|分钟|分)\\s*(后|之后)")
+        let cn = re("(\(cnNum)+(?:\\.\\d+)?|半)\\s*(?:个)?\\s*(小时|小時|钟头|分钟|分|時間)\\s*(后|之后|後)")
         if let m = scanner.firstFree(cn), let n = parseDecimal(group(m, 1, in: ns)), let unit = group(m, 2, in: ns) {
-            let secs = (unit.contains("小时") || unit.contains("钟头") || unit.contains("小時")) ? n * 3600 : n * 60
+            let secs = (unit.contains("小时") || unit.contains("钟头") || unit.contains("小時") || unit.contains("時間")) ? n * 3600 : n * 60
             scanner.consume(m.range)
             return RelTimeMatch(date: now.addingTimeInterval(secs), range: m.range)
         }

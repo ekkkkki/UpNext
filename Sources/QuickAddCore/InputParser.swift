@@ -231,6 +231,12 @@ public struct InputParser {
            let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 1)).lowercased()] {
             return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
         }
+        // Weekly on a specific weekday, Japanese: 毎週月曜 / 毎週金曜日
+        if let m = Self.recWeeklyDayJA.firstMatch(in: str, options: [], range: full),
+           m.range(at: 1).location != NSNotFound,
+           let wd = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1][s.substring(with: m.range(at: 1))] {
+            return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
+        }
 
         // every N <unit> / 每N<unit>
         for (pattern, freq) in Self.recIntervalPatterns {
@@ -285,11 +291,13 @@ public struct InputParser {
         (r("every\\s+(\\d+)\\s+years?"), .yearly)
     ]
 
+    private static let recWeeklyDayJA = r("毎週\\s*([月火水木金土日])曜日?")
+
     private static let recSimplePatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
-        (r("(每天|每日|天天|每一天|daily|every\\s*day|everyday)"), .daily),
-        (r("(每周|每星期|每个星期|每个周|weekly|every\\s*week)"), .weekly),
-        (r("(每月|每个月|每月份|monthly|every\\s*month)"), .monthly),
-        (r("(每年|每一年|yearly|annually|every\\s*year)"), .yearly)
+        (r("(每天|每日|天天|每一天|毎日|daily|every\\s*day|everyday)"), .daily),
+        (r("(每周|每星期|每个星期|每个周|毎週|weekly|every\\s*week)"), .weekly),
+        (r("(每月|每个月|每月份|毎月|monthly|every\\s*month)"), .monthly),
+        (r("(每年|每一年|毎年|yearly|annually|every\\s*year)"), .yearly)
     ]
 }
 

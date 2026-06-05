@@ -26,6 +26,10 @@
   .btn-primary:hover { filter:brightness(1.1); transform:translateY(-1px); }
   .btn-ghost { background:#ffffff14; color:var(--text); border:1px solid #ffffff22; }
   .btn-ghost:hover { background:#ffffff22; }
+  .langbar { display:flex; gap:6px; justify-content:center; margin-bottom:22px; }
+  .langbar a { font-size:13px; color:var(--muted); text-decoration:none; padding:5px 12px; border-radius:8px; }
+  .langbar a:hover { background:#ffffff14; color:var(--text); }
+  .langbar a.active { background:#ffffff1f; color:var(--text); font-weight:600; }
   .shot { display:block; width:100%; border-radius:16px; margin:44px 0; box-shadow:0 30px 80px #0008; }
   .kbd { font-family:ui-monospace,monospace; background:#ffffff14; border:1px solid #ffffff22; border-radius:6px; padding:2px 7px; font-size:.85em; }
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:18px; margin:24px 0; }
@@ -46,6 +50,7 @@
 <body>
 <div class="wrap">
   <header>
+    <div class="langbar"><a href="index.html" class="active">English</a><a href="zh.html">中文</a><a href="ja.html">日本語</a></div>
     <div class="logo">⌘ QuickAdd</div>
     <h1>Capture anything,<br><span class="grad">one keystroke away.</span></h1>
     <p class="sub">A free, open-source macOS menu-bar app. Press <span class="kbd">⇧⌘A</span>, type the way you think,
