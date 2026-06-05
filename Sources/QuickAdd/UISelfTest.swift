@@ -1,0 +1,73 @@
+import AppKit
+import SwiftUI
+
+/// Headless UI/layout checks — the kind that would have caught the multi-line
+/// clipping bug. Run with `QuickAdd --selftest-ui`. Exit 0 pass / 1 fail.
+@MainActor
+enum UISelfTest {
+    static func run() -> Int {
+        var failures = 0
+        func check(_ cond: Bool, _ msg: String) {
+            print(cond ? "  ✓ \(msg)" : "  ✗ FAIL: \(msg)")
+            if !cond { failures += 1 }
+        }
+        print("▸ UI layout self-test")
+
+        // 1) The growing text view must grow with content and clamp at maxHeight.
+        let tv = QATextView(frame: NSRect(x: 0, y: 0, width: 540, height: 30))
+        tv.font = .systemFont(ofSize: 20)
+        tv.isVerticallyResizable = true
+        tv.isHorizontallyResizable = false
+        tv.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        tv.textContainer?.widthTracksTextView = true
+        tv.textContainer?.lineFragmentPadding = 0
+        tv.textContainerInset = NSSize(width: 0, height: 3)
+        let scroll = GrowingScrollView(frame: NSRect(x: 0, y: 0, width: 540, height: 30))
+        scroll.minHeight = 28
+        scroll.maxHeight = 168
+        scroll.documentView = tv
+
+        tv.string = "single line"
+        scroll.recompute()
+        let h1 = scroll.intrinsicContentSize.height
+
+        tv.string = "line one\nline two\nline three"
+        scroll.recompute()
+        let h3 = scroll.intrinsicContentSize.height
+
+        tv.string = String(repeating: "とても長い住所のテキストです ", count: 14)
+        scroll.recompute()
+        let hWrap = scroll.intrinsicContentSize.height
+
+        print("    field heights — 1-line=\(Int(h1)) 3-line=\(Int(h3)) wrapped=\(Int(hWrap))")
+        check(h1 >= 22 && h1 <= 42, "single line is ~one row")
+        check(h3 > h1 + 30, "three lines grow taller than one")
+        check(hWrap > h1 + 20, "a long line wraps and grows (no clipping)")
+        check(hWrap <= 168 + 1, "growth is clamped to maxHeight, then scrolls")
+
+        // 2) The whole panel must grow with multi-line input.
+        let ek = EventKitService()
+        let model = PanelModel(eventKit: ek)
+        func panelHeight(_ input: String) -> CGFloat {
+            model.reset()
+            model.input = input
+            let hc = NSHostingController(rootView: RootPanelView(model: model, eventKit: ek))
+            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 1200),
+                               styleMask: [.borderless], backing: .buffered, defer: false)
+            win.contentViewController = hc
+            win.layoutIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.12))
+            let height = hc.view.fittingSize.height
+            win.close()
+            return height
+        }
+        let single = panelHeight("买牛奶")
+        let multi = panelHeight("6/8 15:30 東京都中央区晴海1-8-10\nトリトンスクエア オフィスタワーX棟 7階\nもう一行追加")
+        print("    panel heights — single=\(Int(single)) multi=\(Int(multi))")
+        check(single > 0, "panel measures a height")
+        check(multi > single, "panel grows for multi-line input (was clipped before)")
+
+        print(failures == 0 ? "✓ UI layout self-test passed" : "✗ UI self-test had \(failures) failure(s)")
+        return failures == 0 ? 0 : 1
+    }
+}

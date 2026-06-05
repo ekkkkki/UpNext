@@ -1,0 +1,19 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+Package.resolved
+
+# Build output / distributables (release artifacts are attached to GitHub Releases)
+dist/
+
+# macOS
+.DS_Store
+
+# Editor
+*.xcuserstate
+*.xcuserdatad/
+.vscode/
+*.swp
+
+# Local self-test scratch
+/tmp/quickadd_selftest_result.txt

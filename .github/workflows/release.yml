@@ -1,0 +1,37 @@
+name: Release DMG
+
+# Manual trigger (the app target needs the macOS 26 SDK for FoundationModels, which
+# GitHub-hosted runners may not have yet — run this once macos-26 runners are available,
+# or build locally with ./package.sh and upload the DMG to a Release).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v1.0.0) — leave blank to only upload an artifact"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: macos-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build app + DMG
+        run: ./package.sh
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: QuickAdd-dmg
+          path: dist/QuickAdd.dmg
+
+      - name: Create release
+        if: ${{ inputs.tag != '' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag }}
+          files: dist/QuickAdd.dmg
+          generate_release_notes: true

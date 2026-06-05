@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>QuickAdd</string>
+    <key>CFBundleDisplayName</key>
+    <string>QuickAdd</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.ericzhao.quickadd</string>
+    <key>CFBundleExecutable</key>
+    <string>QuickAdd</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSApplicationCategoryType</key>
+    <string>public.app-category.productivity</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Created with QuickAdd</string>
+    <key>NSRemindersFullAccessUsageDescription</key>
+    <string>QuickAdd saves the reminders you type into your Reminders lists.</string>
+    <key>NSRemindersUsageDescription</key>
+    <string>QuickAdd saves the reminders you type into your Reminders lists.</string>
+    <key>NSCalendarsFullAccessUsageDescription</key>
+    <string>QuickAdd creates calendar events when your text includes a time range or duration.</string>
+    <key>NSCalendarsUsageDescription</key>
+    <string>QuickAdd creates calendar events when your text includes a time range or duration.</string>
+    <key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+    <string>QuickAdd creates calendar events when your text includes a time range or duration.</string>
+</dict>
+</plist>

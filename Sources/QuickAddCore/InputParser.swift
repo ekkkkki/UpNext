@@ -1,0 +1,300 @@
+import Foundation
+
+/// Turns a single quick-add line into a structured `ParsedItem`.
+///
+/// Pipeline (each stage masks the span it claims so later stages and the title
+/// don't see it): normalize → notes → priority → list → tags → recurrence →
+/// date/time/duration/range → leftover text becomes the title.
+public struct InputParser {
+    public let now: Date
+    public let calendar: Calendar
+
+    public init(now: Date = Date(), calendar: Calendar = .current) {
+        self.now = now
+        var cal = calendar
+        if cal.locale == nil { cal.locale = Locale(identifier: "en_US_POSIX") }
+        self.calendar = cal
+    }
+
+    public func parse(_ rawInput: String) -> ParsedItem {
+        let normalized = Self.normalize(rawInput)
+        let masked = NSMutableString(string: normalized)
+        var item = ParsedItem()
+        var highlights: [Highlight] = []
+
+        // Mask a claimed span with equal-length spaces so offsets stay aligned.
+        func mask(_ range: NSRange) {
+            guard range.location != NSNotFound, range.length > 0 else { return }
+            masked.replaceCharacters(in: range, with: String(repeating: " ", count: range.length))
+        }
+        func addHighlight(_ range: NSRange, _ kind: Highlight.Kind) {
+            guard range.location != NSNotFound, range.length > 0 else { return }
+            highlights.append(Highlight(location: range.location, length: range.length, kind: kind))
+        }
+
+        // 1) URL — extracted first so a URL's "//" can't be mistaken for the notes marker.
+        //    Skip the (relatively expensive) data detector unless the text could hold a URL.
+        if (normalized.contains(".") || normalized.contains("//")), let detector = Self.urlDetector {
+            for m in detector.matches(in: masked.copyString, options: [], range: masked.fullRange) {
+                if let url = m.url {
+                    item.url = url
+                    addHighlight(m.range, .url)
+                    mask(m.range)
+                    break
+                }
+            }
+        }
+
+        // 2) Notes: text after a " // " separator or a newline.
+        if let notesRange = Self.notesSeparator.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
+            let notesStart = notesRange.range.location
+            let after = NSRange(location: notesRange.range.location + notesRange.range.length,
+                                length: masked.length - (notesRange.range.location + notesRange.range.length))
+            let notesText = masked.substring(with: after).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !notesText.isEmpty { item.notes = notesText }
+            mask(NSRange(location: notesStart, length: masked.length - notesStart))
+        }
+
+        // 3) Priority: !, !!, !!! or p1/p2/p3 as a standalone token.
+        if let (range, priority) = Self.matchPriority(masked) {
+            item.priority = priority
+            addHighlight(range, .priority)
+            mask(range)
+        }
+
+        // 4) List: ~Name
+        if let m = Self.listPattern.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
+            let nameRange = m.range(at: 1)
+            if nameRange.location != NSNotFound {
+                item.listName = masked.substring(with: nameRange)
+                addHighlight(m.range, .list)
+                mask(m.range)
+            }
+        }
+
+        // 5) Tags: #tag (collect all). Capture, then mask in a second pass so the
+        //    matches computed on the pre-mask snapshot stay valid.
+        let tagMatches = Self.tagPattern.matches(in: masked.copyString, options: [], range: masked.fullRange)
+        for m in tagMatches {
+            let nameRange = m.range(at: 1)
+            guard nameRange.location != NSNotFound else { continue }
+            item.tags.append(masked.substring(with: nameRange))
+            addHighlight(m.range, .tag)
+        }
+        for m in tagMatches { mask(m.range) }
+
+        // 6) Recurrence
+        if let rec = matchRecurrence(masked) {
+            item.recurrence = rec.rule
+            addHighlight(rec.range, .recurrence)
+            mask(rec.range)
+        }
+
+        // 7) Date / time / duration / range
+        let dt = DateTimeParser.parse(masked.copyString, now: now, calendar: calendar)
+        item.startDate = dt.startDate
+        item.endDate = dt.endDate
+        item.hasTime = dt.hasTime
+        item.isAllDay = dt.isAllDay
+        for c in dt.consumed {
+            addHighlight(c.range, c.kind)
+            mask(c.range)
+        }
+        let explicitEvent = dt.isEvent
+
+        // 7b) Location & meeting detection (rule-based NLP) on the remaining text.
+        let cueDetection = LocationDetector.detect(in: masked.copyString)
+        let meetingKeyword = LocationDetector.containsMeetingKeyword(masked.copyString)
+        if let det = cueDetection {
+            // Keep the phrase as the title (don't pull out a location) only for a
+            // single connected token that is really an action, e.g. "去三楼会议室开会":
+            // it would empty the title, contains a meeting keyword, and has no spaces to
+            // separate a venue from a subject. Space-separated venues are still extracted.
+            let leftover = Self.maskedCopy(masked, removing: det.range)
+            let titleWouldBeEmpty = Self.cleanTitle(leftover).isEmpty
+            let singleConnectedToken = !det.text.contains(" ")
+            let keepAsTitle = titleWouldBeEmpty && det.overlapsMeetingKeyword && singleConnectedToken
+            if !keepAsTitle {
+                item.location = det.text
+                addHighlight(det.range, .location)
+                mask(det.range)
+            }
+        }
+
+        // 7c) Reminder vs. event. A timed item that is a meeting or has a place is an event.
+        let hasLocationSignal = (item.location != nil) || (cueDetection != nil)
+        let isEvent = explicitEvent || (item.hasTime && (hasLocationSignal || meetingKeyword))
+        item.kind = isEvent ? .event : .reminder
+        if isEvent, item.endDate == nil, item.hasTime, let start = item.startDate {
+            item.endDate = start.addingTimeInterval(Self.defaultEventDuration)
+        }
+
+        // A recurring item with no explicit date needs an anchor date to recur from.
+        if item.recurrence != nil, item.startDate == nil {
+            if let rec = item.recurrence, rec.frequency == .weekly, let wd = rec.weekdays.first {
+                item.startDate = nextWeekday(wd)
+            } else {
+                item.startDate = calendar.startOfDay(for: now)
+            }
+            item.isAllDay = !item.hasTime
+        }
+
+        // 8) Title = whatever is left. If empty but we found a place, name it after
+        //    the most name-like part of the location.
+        item.title = Self.cleanTitle(masked.copyString)
+        if item.title.isEmpty, let loc = item.location {
+            item.title = LocationDetector.nameLikeTitle(from: loc)
+        }
+        item.highlights = highlights.sorted { $0.location < $1.location }
+        return item
+    }
+
+    // MARK: - Normalization
+
+    /// Map the full-width characters a CJK keyboard produces to their ASCII forms,
+    /// one-to-one so UTF-16 offsets (and therefore highlight ranges) are preserved.
+    static func normalize(_ s: String) -> String {
+        var out = String.UnicodeScalarView()
+        for scalar in s.unicodeScalars {
+            switch scalar.value {
+            case 0xFF10...0xFF19: // ０-９
+                out.append(Unicode.Scalar(scalar.value - 0xFF10 + 0x30)!)
+            case 0xFF01: out.append("!")   // ！
+            case 0xFF1A: out.append(":")   // ：
+            case 0xFF5E, 0x301C: out.append("~") // ～ 〜
+            case 0xFF03: out.append("#")   // ＃
+            case 0xFF0D: out.append("-")   // －
+            case 0xFF0E: out.append(".")   // ．
+            default: out.append(scalar)
+            }
+        }
+        return String(out)
+    }
+
+    /// A copy of `s` with `range` blanked to spaces (used to preview the leftover title).
+    static func maskedCopy(_ s: NSMutableString, removing range: NSRange) -> String {
+        let copy = NSMutableString(string: s as String)
+        if range.location != NSNotFound, range.length > 0 {
+            copy.replaceCharacters(in: range, with: String(repeating: " ", count: range.length))
+        }
+        return copy as String
+    }
+
+    static func cleanTitle(_ s: String) -> String {
+        let collapsed = s.components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        let trimSet = CharacterSet(charactersIn: " ,，、:：;；-–—~～·")
+        return collapsed.trimmingCharacters(in: trimSet)
+    }
+
+    // MARK: - Priority
+
+    private static func matchPriority(_ s: NSMutableString) -> (NSRange, Priority)? {
+        let str = s.copyString
+        if let m = bangPattern.firstMatch(in: str, options: [], range: s.fullRange) {
+            let g = m.range(at: 1)
+            let bangs = s.substring(with: g)
+            let p: Priority = bangs.count >= 3 ? .high : (bangs.count == 2 ? .medium : .low)
+            return (g, p)
+        }
+        if let m = pLevelPattern.firstMatch(in: str, options: [], range: s.fullRange) {
+            let g = m.range(at: 1)
+            let token = s.substring(with: g).lowercased()
+            let p: Priority = token.hasSuffix("1") ? .high : (token.hasSuffix("2") ? .medium : .low)
+            return (g, p)
+        }
+        return nil
+    }
+
+    // MARK: - Recurrence
+
+    private struct RecurrenceMatch { var rule: RecurrenceRule; var range: NSRange }
+
+    private static let recWeekdayMap: [String: Int] = [
+        "monday": 2, "mon": 2, "tuesday": 3, "tue": 3, "tues": 3, "wednesday": 4, "wed": 4,
+        "thursday": 5, "thu": 5, "thurs": 5, "friday": 6, "fri": 6, "saturday": 7, "sat": 7,
+        "sunday": 1, "sun": 1, "一": 2, "二": 3, "三": 4, "四": 5, "五": 6, "六": 7, "日": 1, "天": 1
+    ]
+
+    private func matchRecurrence(_ s: NSMutableString) -> RecurrenceMatch? {
+        let str = s.copyString
+        let full = s.fullRange
+
+        // Weekly on a specific weekday: 每周一 / 每星期二 / every monday
+        if let m = Self.recWeeklyDayCN.firstMatch(in: str, options: [], range: full),
+           let wd = (m.range(at: 1).location != NSNotFound ? Self.recWeekdayMap[s.substring(with: m.range(at: 1))] : nil) {
+            return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
+        }
+        if let m = Self.recWeeklyDayEN.firstMatch(in: str, options: [], range: full),
+           m.range(at: 1).location != NSNotFound,
+           let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 1)).lowercased()] {
+            return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, interval: 1, weekdays: [wd]), range: m.range)
+        }
+
+        // every N <unit> / 每N<unit>
+        for (pattern, freq) in Self.recIntervalPatterns {
+            if let m = pattern.firstMatch(in: str, options: [], range: full) {
+                let n = m.range(at: 1).location != NSNotFound ? (Int(s.substring(with: m.range(at: 1))) ?? ChineseNumber.parse(s.substring(with: m.range(at: 1))) ?? 1) : 1
+                return RecurrenceMatch(rule: RecurrenceRule(frequency: freq, interval: n), range: m.range)
+            }
+        }
+
+        // Plain daily / weekly / monthly / yearly
+        for (pattern, freq) in Self.recSimplePatterns {
+            if let m = pattern.firstMatch(in: str, options: [], range: full) {
+                return RecurrenceMatch(rule: RecurrenceRule(frequency: freq), range: m.range)
+            }
+        }
+        return nil
+    }
+
+    private func nextWeekday(_ target: Int) -> Date {
+        let cur = calendar.component(.weekday, from: now)
+        let delta = (target - cur + 7) % 7
+        return calendar.date(byAdding: .day, value: delta, to: calendar.startOfDay(for: now)) ?? now
+    }
+
+    // MARK: - Compiled patterns
+
+    private static func r(_ p: String, _ o: NSRegularExpression.Options = [.caseInsensitive]) -> NSRegularExpression {
+        try! NSRegularExpression(pattern: p, options: o)
+    }
+
+    // Notes start at an explicit " // " marker. (A bare newline is NOT a separator —
+    // multi-line input is often a continued address/venue, handled by the location pass.)
+    static let notesSeparator = r("(?:^|\\s)//\\s*")
+    static let defaultEventDuration: TimeInterval = 3600
+    private static let bangPattern = r("(?:^|\\s)(!{1,3})(?=\\s|$)")
+    private static let pLevelPattern = r("(?:^|\\s)(p[1-3])(?=\\s|$)")
+    private static let listPattern = r("(?:^|\\s)~([\\p{L}\\p{N}_\\-/]+)")
+    private static let tagPattern = r("(?:^|\\s)#([\\p{L}\\p{N}_\\-/]+)")
+    private static let urlDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
+
+    private static let recWeeklyDayCN = r("(?:每|每个)\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天])")
+    private static let recWeeklyDayEN = r("every\\s+(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\\b")
+
+    private static let recIntervalPatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
+        (r("(?:每|每隔)\\s*([0-9零〇一二两三四五六七八九十]+)\\s*天"), .daily),
+        (r("(?:每|每隔)\\s*([0-9零〇一二两三四五六七八九十]+)\\s*(?:周|星期)"), .weekly),
+        (r("(?:每|每隔)\\s*([0-9零〇一二两三四五六七八九十]+)\\s*(?:个月|月)"), .monthly),
+        (r("(?:每|每隔)\\s*([0-9零〇一二两三四五六七八九十]+)\\s*年"), .yearly),
+        (r("every\\s+(\\d+)\\s+days?"), .daily),
+        (r("every\\s+(\\d+)\\s+weeks?"), .weekly),
+        (r("every\\s+(\\d+)\\s+months?"), .monthly),
+        (r("every\\s+(\\d+)\\s+years?"), .yearly)
+    ]
+
+    private static let recSimplePatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
+        (r("(每天|每日|天天|每一天|daily|every\\s*day|everyday)"), .daily),
+        (r("(每周|每星期|每个星期|每个周|weekly|every\\s*week)"), .weekly),
+        (r("(每月|每个月|每月份|monthly|every\\s*month)"), .monthly),
+        (r("(每年|每一年|yearly|annually|every\\s*year)"), .yearly)
+    ]
+}
+
+private extension NSMutableString {
+    var fullRange: NSRange { NSRange(location: 0, length: length) }
+    /// A stable immutable snapshot for regex matching (NSRegularExpression wants a String).
+    var copyString: String { self as String }
+}
