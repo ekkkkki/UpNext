@@ -326,6 +326,15 @@ public struct InputParser {
                 return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, weekdays: Array(Set(wds)).sorted()), range: m.range)
             }
         }
+        // English, multiple weekdays: "every mon wed fri", "every tue and thu".
+        if let m = Self.recWeeklyDaysEN.firstMatch(in: str, options: [], range: full), m.range(at: 1).location != NSNotFound {
+            let group = m.range(at: 1)
+            let names = Self.enWeekdayToken.matches(in: str, options: [], range: group)
+                .compactMap { Self.recWeekdayMap[(str as NSString).substring(with: $0.range).lowercased()] }
+            if names.count >= 2 {
+                return RecurrenceMatch(rule: RecurrenceRule(frequency: .weekly, weekdays: Array(Set(names)).sorted()), range: m.range)
+            }
+        }
         if let m = Self.recWeeklyDayEN.firstMatch(in: str, options: [], range: full),
            m.range(at: 1).location != NSNotFound,
            let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 1)).lowercased()] {
@@ -491,6 +500,11 @@ public struct InputParser {
     static let allDayPattern = r("(全天|整天|all[\\s-]?day|終日|终日)")
     private static let recWeeklyDayCN = r("(?:每|每个)\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天]+)")
     private static let recWeeklyDayEN = r("every\\s+(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\\b")
+    private static let enWeekdayToken = r("\\b(monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)\\b")
+    private static let recWeeklyDaysEN: NSRegularExpression = {
+        let wd = "(?:monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)"
+        return r("every\\s+(\(wd)(?:[\\s,/&]+(?:and\\s+)?\(wd))+)")
+    }()
 
     private static let recIntervalPatterns: [(NSRegularExpression, RecurrenceFrequency)] = [
         (r("(?:每|每隔)\\s*([0-9零〇一二两三四五六七八九十]+)\\s*天"), .daily),
