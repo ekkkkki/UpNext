@@ -198,13 +198,16 @@ struct SearchRow: View {
 
     @ViewBuilder
     private var contextMenu: some View {
-        if hit.kind == .reminder, let onReschedule {
+        if let onReschedule {
             let cal = Calendar.current
             let today = cal.startOfDay(for: Date())
-            Button(L("Today", "今天", "今日")) { onReschedule(today) }
-            Button(L("Tomorrow", "明天", "明日")) { onReschedule(cal.date(byAdding: .day, value: 1, to: today) ?? today) }
-            Button(L("Next week", "下周", "来週")) { onReschedule(cal.date(byAdding: .day, value: 7, to: today) ?? today) }
-            Divider()
+            Menu(L("Reschedule", "改期", "日付を変更")) {
+                Button(L("Today", "今天", "今日")) { onReschedule(today) }
+                Button(L("Tomorrow", "明天", "明日")) { onReschedule(cal.date(byAdding: .day, value: 1, to: today) ?? today) }
+                Button(L("Next week", "下周", "来週")) { onReschedule(cal.date(byAdding: .day, value: 7, to: today) ?? today) }
+            }
+        }
+        if hit.kind == .reminder {
             Button(hit.isCompleted ? L("Mark incomplete", "标记未完成", "未完了にする")
                                    : L("Complete", "完成", "完了")) { onToggle() }
         }

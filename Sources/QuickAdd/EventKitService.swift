@@ -238,24 +238,39 @@ final class EventKitService: ObservableObject {
         }
     }
 
-    /// Move a reminder's due date to `newDay`, preserving its time-of-day if it had one.
+    /// Move a reminder or event to `newDay`, preserving time-of-day (and, for events,
+    /// the original duration).
     func reschedule(_ hit: SearchHit, to newDay: Date) {
-        guard let reminder = hit.reminder else { return }
         let cal = Calendar.current
-        let hadTime = reminder.dueDateComponents?.hour != nil
-        var comps = cal.dateComponents([.year, .month, .day], from: newDay)
-        if hadTime {
-            comps.hour = reminder.dueDateComponents?.hour
-            comps.minute = reminder.dueDateComponents?.minute
+        if let reminder = hit.reminder {
+            let hadTime = reminder.dueDateComponents?.hour != nil
+            var comps = cal.dateComponents([.year, .month, .day], from: newDay)
+            if hadTime {
+                comps.hour = reminder.dueDateComponents?.hour
+                comps.minute = reminder.dueDateComponents?.minute
+            }
+            reminder.dueDateComponents = comps
+            reminder.isCompleted = false
+            reminder.alarms?.forEach { reminder.removeAlarm($0) }
+            if let due = cal.date(from: comps) {
+                let hour = UserDefaults.standard.integer(forKey: Theme.userDefaultsAllDayHour)
+                let alarmDate = hadTime ? due : (cal.date(bySettingHour: hour, minute: 0, second: 0, of: due) ?? due)
+                reminder.addAlarm(EKAlarm(absoluteDate: alarmDate))
+            }
+            try? store.save(reminder, commit: true)
+        } else if let event = hit.event {
+            let duration = max(event.endDate.timeIntervalSince(event.startDate), 0)
+            let newStart: Date
+            if event.isAllDay {
+                newStart = cal.startOfDay(for: newDay)
+            } else {
+                let tod = cal.dateComponents([.hour, .minute], from: event.startDate)
+                newStart = cal.date(bySettingHour: tod.hour ?? 9, minute: tod.minute ?? 0, second: 0, of: newDay) ?? newDay
+            }
+            event.startDate = newStart
+            event.endDate = newStart.addingTimeInterval(duration)
+            try? store.save(event, span: .thisEvent, commit: true)
         }
-        reminder.dueDateComponents = comps
-        reminder.isCompleted = false
-        reminder.alarms?.forEach { reminder.removeAlarm($0) }
-        if let due = cal.date(from: comps) {
-            let alarmDate = hadTime ? due : (cal.date(bySettingHour: 9, minute: 0, second: 0, of: due) ?? due)
-            reminder.addAlarm(EKAlarm(absoluteDate: alarmDate))
-        }
-        try? store.save(reminder, commit: true)
     }
 
     func delete(_ hit: SearchHit) {
