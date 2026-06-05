@@ -39,6 +39,8 @@ Calendar. No app-switching, no forms.
 - Parses **dates, times, durations, ranges, priority, lists, tags, recurrence, URLs, location, notes**.
 - **Smart search** across Reminders *and* Calendar with a small filter language
   (`is:event due:week ~Work #urgent !!`), inline complete/delete.
+- **Localized UI** — the app's own chrome follows your system language (English / 中文 / 日本語),
+  not just the parser.
 - **Optional on-device LLM** (Apple Intelligence, macOS 26+) refines fuzzy cases — opt-in,
   private, never required (the rule-based parser always runs).
 - Native SwiftUI UI, menu-bar agent (no Dock icon), launch-at-login, configurable default lists.

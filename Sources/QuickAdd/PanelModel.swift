@@ -90,7 +90,9 @@ final class PanelModel: ObservableObject {
         do {
             let outcome = try eventKit.create(from: parsed, defaultListName: defaultReminderList)
             let symbol = outcome.kind == .event ? "calendar" : "checklist"
-            var text = outcome.kind == .event ? "Event added" : "Reminder added"
+            var text = outcome.kind == .event
+                ? L("Event added", "已添加日历事件", "予定を追加しました")
+                : L("Reminder added", "已添加提醒", "リマインダーを追加しました")
             if let summary = DateFormatting.summary(start: outcome.date, end: outcome.endDate,
                                                     isAllDay: outcome.isAllDay, hasTime: !outcome.isAllDay) {
                 text += " · \(summary)"
@@ -98,7 +100,7 @@ final class PanelModel: ObservableObject {
             if let created = outcome.calendarItem {
                 lastCreated = (created, original)
                 canUndo = true
-                text += "  ·  ⌘Z to undo"
+                text += "  ·  " + L("⌘Z to undo", "⌘Z 撤销", "⌘Z で取り消し")
             }
             toast = ToastMessage(text: text, symbol: symbol)
             input = ""
@@ -114,7 +116,8 @@ final class PanelModel: ObservableObject {
         eventKit.undoCreate(last.item)
         lastCreated = nil
         canUndo = false
-        toast = ToastMessage(text: "Removed — edit and add again", symbol: "arrow.uturn.backward")
+        toast = ToastMessage(text: L("Removed — edit and add again", "已撤销，可修改后重新添加", "取り消しました — 編集して再追加"),
+                             symbol: "arrow.uturn.backward")
         input = last.input
     }
 

@@ -21,7 +21,7 @@ struct SearchView: View {
             Image(systemName: "magnifyingglass").font(.system(size: 18)).foregroundStyle(.secondary)
             SearchField(
                 text: $model.searchText,
-                placeholder: "Search reminders & events…",
+                placeholder: L("Search reminders & events…", "搜索提醒和日历…", "リマインダー・予定を検索…"),
                 focusTick: focusTick,
                 onMoveUp: { model.moveSelection(-1) },
                 onMoveDown: { model.moveSelection(1) },
@@ -44,7 +44,7 @@ struct SearchView: View {
                 Spacer()
                 VStack(spacing: 6) {
                     Image(systemName: "tray").font(.system(size: 22)).foregroundStyle(.tertiary)
-                    Text("No matches").font(.system(size: 13)).foregroundStyle(.secondary)
+                    Text(L("No matches", "没有匹配项", "一致なし")).font(.system(size: 13)).foregroundStyle(.secondary)
                 }
                 Spacer()
             }
@@ -74,7 +74,7 @@ struct SearchView: View {
     private var agendaList: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Label("Today", systemImage: "sun.max")
+                Label(L("Today", "今天", "今日"), systemImage: "sun.max")
                     .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                 Spacer()
                 Text("\(model.agenda.count)").font(.system(size: 11)).foregroundStyle(.tertiary)
@@ -96,8 +96,8 @@ struct SearchView: View {
 
     private var emptyHint: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Filters").font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
-            ForEach(Self.filterHints, id: \.0) { hint in
+            Text(L("Filters", "筛选语法", "フィルタ")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
+            ForEach(Self.filterHints(), id: \.0) { hint in
                 HStack(spacing: 8) {
                     Text(hint.0)
                         .font(.system(size: 11, weight: .medium, design: .monospaced))
@@ -113,12 +113,12 @@ struct SearchView: View {
 
     private var footer: some View {
         HStack(spacing: 14) {
-            KeyHint(key: "↑↓", label: "Navigate")
-            KeyHint(key: "↩", label: "Complete")
-            KeyHint(key: "esc", label: "Close")
+            KeyHint(key: "↑↓", label: L("Navigate", "导航", "移動"))
+            KeyHint(key: "↩", label: L("Complete", "完成", "完了"))
+            KeyHint(key: "esc", label: L("Close", "关闭", "閉じる"))
             Spacer()
             if !model.results.isEmpty {
-                Text("\(model.results.count) result\(model.results.count == 1 ? "" : "s")")
+                Text(Self.resultsLabel(model.results.count))
                     .font(.system(size: 11)).foregroundStyle(.tertiary)
             }
         }
@@ -128,14 +128,24 @@ struct SearchView: View {
 
     private func focusSoon() { focusTick &+= 1 }
 
-    static let filterHints: [(String, String)] = [
-        ("is:event", "only calendar events"),
-        ("is:reminder", "only reminders"),
-        ("is:done / is:open", "by completion"),
-        ("due:today / week", "overdue, today, this week"),
-        ("~List   #tag", "by list or tag"),
-        ("!!!  / priority:high", "by priority")
-    ]
+    static func filterHints() -> [(String, String)] {
+        [
+            ("is:event", L("only calendar events", "只看日历事件", "予定のみ")),
+            ("is:reminder", L("only reminders", "只看提醒", "リマインダーのみ")),
+            ("is:done / is:open", L("by completion", "按完成状态", "完了状態で")),
+            ("due:today / week", L("overdue, today, this week", "逾期、今天、本周", "期限切れ・今日・今週")),
+            ("~List   #tag", L("by list or tag", "按清单或标签", "リスト・タグで")),
+            ("!!!  / priority:high", L("by priority", "按优先级", "優先度で"))
+        ]
+    }
+
+    static func resultsLabel(_ n: Int) -> String {
+        switch L10n.lang {
+        case .en: return "\(n) result\(n == 1 ? "" : "s")"
+        case .zh: return "\(n) 条结果"
+        case .ja: return "\(n) 件"
+        }
+    }
 }
 
 struct SearchRow: View {

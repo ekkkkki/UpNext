@@ -30,7 +30,7 @@ struct AddView: View {
 
             GrowingTextView(
                 text: $model.input,
-                placeholder: "Add a reminder or event…",
+                placeholder: L("Add a reminder or event…", "添加提醒或日程…", "リマインダー・予定を追加…"),
                 focusTick: focusTick,
                 highlights: parsed.highlights.map {
                     (NSRange(location: $0.location, length: $0.length), Theme.nsColor(for: $0.kind))
@@ -73,8 +73,8 @@ struct AddView: View {
 
     private var hintRow: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text("Examples").font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
-            ForEach(Self.examples, id: \.self) { ex in
+            Text(L("Examples", "示例", "例")).font(.system(size: 11, weight: .semibold)).foregroundStyle(.tertiary)
+            ForEach(Self.examples(), id: \.self) { ex in
                 HStack(spacing: 6) {
                     Image(systemName: "arrow.turn.down.right").font(.system(size: 9)).foregroundStyle(.quaternary)
                     Text(ex).font(.system(size: 12)).foregroundStyle(.secondary)
@@ -94,7 +94,7 @@ struct AddView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .lineLimit(1)
                 Spacer()
-                Text(isEvent ? "Calendar Event" : "Reminder")
+                Text(isEvent ? L("Calendar Event", "日历事件", "カレンダー予定") : L("Reminder", "提醒", "リマインダー"))
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6).padding(.vertical, 2)
@@ -140,9 +140,9 @@ struct AddView: View {
 
     private var footer: some View {
         HStack(spacing: 14) {
-            KeyHint(key: "↩", label: model.canSubmit ? "Add" : "…")
-            KeyHint(key: "⌘F", label: "Search")
-            KeyHint(key: "esc", label: "Close")
+            KeyHint(key: "↩", label: model.canSubmit ? L("Add", "添加", "追加") : "…")
+            KeyHint(key: "⌘F", label: L("Search", "搜索", "検索"))
+            KeyHint(key: "esc", label: L("Close", "关闭", "閉じる"))
             Spacer()
             if let list = model.defaultReminderList, parsed.listName == nil, !isEvent {
                 Label(list, systemImage: "tray").font(.system(size: 11)).foregroundStyle(.tertiary)
@@ -158,17 +158,43 @@ struct AddView: View {
 
     static func leadLabel(_ seconds: TimeInterval) -> String {
         let s = Int(seconds)
-        if s % 86400 == 0 { return "\(s / 86400)d before" }
-        if s % 3600 == 0 { return "\(s / 3600)h before" }
-        return "\(s / 60)m before"
+        let n: Int
+        let unit: (en: String, zh: String, ja: String)
+        if s % 86400 == 0 { n = s / 86400; unit = ("d", "天", "日") }
+        else if s % 3600 == 0 { n = s / 3600; unit = ("h", "小时", "時間") }
+        else { n = s / 60; unit = ("m", "分钟", "分") }
+        switch L10n.lang {
+        case .en: return "\(n)\(unit.en) before"
+        case .zh: return "提前\(n)\(unit.zh)"
+        case .ja: return "\(n)\(unit.ja)前"
+        }
     }
 
-    static let examples = [
-        "明天下午3点 开会 30min   →  calendar event",
-        "周五 9am-10am 团队会议   →  event with range",
-        "买牛奶 ~Groceries !!   →  reminder, high priority",
-        "每周一 上午10点 周会   →  repeating reminder"
-    ]
+    static func examples() -> [String] {
+        switch L10n.lang {
+        case .en:
+            return [
+                "Lunch with Sam tomorrow 12-1pm   →  event",
+                "Client meeting tomorrow 3pm 250 Main St   →  event + 📍",
+                "Submit report Friday 5pm !!   →  reminder",
+                "Standup every Monday 10am   →  repeating"
+            ]
+        case .zh:
+            return [
+                "明天下午3点 开会 30min   →  日历事件",
+                "周五 9am-10am 团队会议   →  带时间段的事件",
+                "买牛奶 ~杂货 !!   →  高优先级提醒",
+                "每周一 上午10点 周会   →  重复提醒"
+            ]
+        case .ja:
+            return [
+                "明日15時 会議 30分   →  カレンダー予定",
+                "明日14時-15時 1on1   →  時間範囲の予定",
+                "牛乳を買う ~買い物 !!   →  リマインダー",
+                "毎週月曜 午前10時 定例   →  繰り返し"
+            ]
+        }
+    }
 }
 
 /// Compact Add/Search switch.

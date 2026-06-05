@@ -44,12 +44,14 @@ struct RootPanelView: View {
         HStack(spacing: 10) {
             Image(systemName: "lock.shield").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 1) {
-                Text("Access needed").font(.system(size: 12, weight: .semibold))
-                Text("Allow Reminders & Calendar so QuickAdd can save items.")
+                Text(L("Access needed", "需要授权", "アクセスが必要")).font(.system(size: 12, weight: .semibold))
+                Text(L("Allow Reminders & Calendar so QuickAdd can save items.",
+                       "允许访问提醒事项和日历，QuickAdd 才能保存。",
+                       "リマインダーとカレンダーへのアクセスを許可してください。"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Grant Access") { Task { await eventKit.requestAccess() } }
+            Button(L("Grant Access", "授权", "許可")) { Task { await eventKit.requestAccess() } }
                 .controlSize(.small)
         }
         .padding(.horizontal, 16).padding(.vertical, 10)

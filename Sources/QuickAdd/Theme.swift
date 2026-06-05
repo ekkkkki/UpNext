@@ -59,8 +59,13 @@ enum DateFormatting {
         }
 
         let timeFmt = DateFormatter()
-        timeFmt.dateFormat = "h:mm a"
-        timeFmt.amSymbol = "AM"; timeFmt.pmSymbol = "PM"
+        timeFmt.locale = L10n.locale
+        if L10n.uses24Hour {
+            timeFmt.dateFormat = "HH:mm"
+        } else {
+            timeFmt.dateFormat = "h:mm a"
+            timeFmt.amSymbol = "AM"; timeFmt.pmSymbol = "PM"
+        }
 
         if let end {
             // Event with a range.
@@ -83,16 +88,20 @@ enum DateFormatting {
         let startTarget = calendar.startOfDay(for: date)
         let days = calendar.dateComponents([.day], from: startToday, to: startTarget).day ?? 0
         switch days {
-        case 0: return "Today"
-        case 1: return "Tomorrow"
-        case -1: return "Yesterday"
+        case 0: return L("Today", "今天", "今日")
+        case 1: return L("Tomorrow", "明天", "明日")
+        case -1: return L("Yesterday", "昨天", "昨日")
         case 2...6:
-            let f = DateFormatter(); f.dateFormat = "EEEE"
+            let f = DateFormatter(); f.locale = L10n.locale; f.dateFormat = "EEEE"
             return f.string(from: date)
         default:
-            let f = DateFormatter()
-            f.dateFormat = calendar.component(.year, from: date) == calendar.component(.year, from: now)
-                ? "EEE, MMM d" : "MMM d, yyyy"
+            let f = DateFormatter(); f.locale = L10n.locale
+            let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
+            if L10n.lang == .en {
+                f.dateFormat = sameYear ? "EEE, MMM d" : "MMM d, yyyy"
+            } else {
+                f.dateFormat = sameYear ? "M月d日" : "yyyy年M月d日"
+            }
             return f.string(from: date)
         }
     }

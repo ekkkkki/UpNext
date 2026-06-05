@@ -64,10 +64,10 @@ struct PriorityFlag: View {
 extension Priority {
     var localizedName: String {
         switch self {
-        case .none: return "None"
-        case .low: return "Low"
-        case .medium: return "Medium"
-        case .high: return "High"
+        case .none: return L("None", "无", "なし")
+        case .low: return L("Low", "低", "低")
+        case .medium: return L("Medium", "中", "中")
+        case .high: return L("High", "高", "高")
         }
     }
 }

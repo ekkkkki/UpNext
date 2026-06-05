@@ -52,6 +52,7 @@ enum RenderShots {
             win.close()
         }
 
+        L10n.override = .en
         shot("hero") { m in
             m.reset()
             m.input = "6/8 15:30 東京都中央区晴海1-8-10 トリトンスクエア オフィスタワーX棟 7階"
@@ -101,6 +102,7 @@ enum RenderShots {
         }
 
         // Chinese set for the 中文 landing page.
+        L10n.override = .zh
         shot("hero-zh") { m in
             m.reset()
             m.input = "客户会议 明天下午3点 北京朝阳区建国路88号 SOHO现代城15层"
@@ -122,6 +124,7 @@ enum RenderShots {
         }
 
         // Japanese set for the 日本語 landing page.
+        L10n.override = .ja
         shot("hero-ja") { m in
             m.reset()
             m.input = "クライアント会議 明日15時 東京都港区六本木6-10-1 六本木ヒルズ森タワー20階"
@@ -142,6 +145,7 @@ enum RenderShots {
             m.setPreviewResults(sampleHitsJA())
         }
 
+        L10n.override = nil
         print("rendered \(count) screenshot(s) → \(outDir)")
         return count > 0 ? 0 : 1
     }
