@@ -109,6 +109,12 @@ public struct InputParser {
             addHighlight(forSpec.range, .recurrence)
             mask(forSpec.range)
         }
+        // 6a3) Recurrence end at a weekday ("until Friday" / "到周五" / "金曜まで").
+        if item.recurrence != nil, recurrenceEndSpec == nil, let until = matchUntilWeekday(masked) {
+            item.recurrence?.endDate = until.date
+            addHighlight(until.range, .recurrence)
+            mask(until.range)
+        }
 
         // 6b) Lead-time alarm ("提前30分钟" / "30分前" / "1 day before"). Extracted before
         //     the date stage so its number isn't mistaken for an event duration.
@@ -390,6 +396,36 @@ public struct InputParser {
             else { per = 0 }
             guard per > 0 else { continue }
             return (m.range, per * Double(n))
+        }
+        return nil
+    }
+
+    // MARK: - Recurrence end at a weekday ("until Friday")
+
+    private static let untilEN = r("\\buntil\\s+(next\\s+)?(monday|mon|tuesday|tues|tue|wednesday|weds|wed|thursday|thurs|thu|friday|fri|saturday|sat|sunday|sun)\\b")
+    private static let untilZH = r("到\\s*(下周|下星期)?\\s*(?:周|星期|礼拜)\\s*([一二三四五六日天])")
+    private static let untilJA = r("([月火水木金土日])曜日?\\s*まで")
+
+    private func matchUntilWeekday(_ s: NSMutableString) -> (range: NSRange, date: Date)? {
+        let str = s.copyString
+        let full = s.fullRange
+        if let m = Self.untilEN.firstMatch(in: str, options: [], range: full),
+           m.range(at: 2).location != NSNotFound,
+           let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 2)).lowercased()] {
+            var d = nextWeekday(wd)
+            if m.range(at: 1).location != NSNotFound { d = calendar.date(byAdding: .day, value: 7, to: d) ?? d }
+            return (m.range, d)
+        }
+        if let m = Self.untilZH.firstMatch(in: str, options: [], range: full),
+           m.range(at: 2).location != NSNotFound,
+           let wd = Self.recWeekdayMap[s.substring(with: m.range(at: 2))] {
+            var d = nextWeekday(wd)
+            if m.range(at: 1).location != NSNotFound { d = calendar.date(byAdding: .day, value: 7, to: d) ?? d }
+            return (m.range, d)
+        }
+        if let m = Self.untilJA.firstMatch(in: str, options: [], range: full),
+           let wd = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1][s.substring(with: m.range(at: 1))] {
+            return (m.range, nextWeekday(wd))
         }
         return nil
     }

@@ -236,6 +236,9 @@ do {
 h.eq(parse("daily standup for 2 weeks").recurrence?.endDate, ymd(2026, 6, 19, 0, 0), "for 2 weeks -> end")
 h.eq(parse("毎日 散歩 2週間").recurrence?.endDate, ymd(2026, 6, 19, 0, 0), "2週間 -> end (JA)")
 h.eq(parse("every day for 3 months").recurrence?.endDate, ymd(2026, 9, 5, 0, 0), "for 3 months -> end")
+h.eq(parse("每天 锻炼 到周三").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "到周三 -> end Wed")
+h.eq(parse("daily standup until wednesday").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "until wednesday")
+h.eq(parse("毎日 散歩 水曜まで").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "水曜まで (ja)")
 
 h.group("Title cleanup & highlights")
 do {
