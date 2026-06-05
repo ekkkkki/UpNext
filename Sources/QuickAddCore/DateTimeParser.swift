@@ -327,6 +327,19 @@ enum DateTimeParser {
             }
         }
 
+        // Start of month → the 1st (rolls to next month if already past).
+        let monthStart = re("(月初め|月初|月头|start\\s+of\\s+(?:the\\s+)?month)")
+        if let m = scanner.firstFree(monthStart) {
+            let comps = cal.dateComponents([.year, .month], from: now)
+            if var first = cal.date(from: comps) {
+                if first < cal.startOfDay(for: now) {
+                    first = cal.date(byAdding: .month, value: 1, to: first) ?? first
+                }
+                scanner.consume(m.range)
+                return DayMatch(date: first, endDate: nil, range: m.range, eveningHint: false)
+            }
+        }
+
         // Absolute Chinese date: (YYYY年)?M月D日/号
         let cnDate = re("(?:(\\d{4})\\s*年)?\\s*(\(cnNum){1,2})\\s*月\\s*(\(cnNum){1,3})\\s*[日号]")
         if let m = scanner.firstFree(cnDate),

@@ -178,6 +178,8 @@ do {
 }
 h.eq(parse("月底 交房租").startDate, ymd(2026, 6, 30, 0, 0), "month end -> last day")
 h.eq(parse("交报告 by end of month").startDate, ymd(2026, 6, 30, 0, 0), "end of month (EN)")
+h.eq(parse("月初 交房租").startDate, ymd(2026, 7, 1, 0, 0), "month start -> next 1st (past this month)")
+h.eq(parse("start of month review").startDate, ymd(2026, 7, 1, 0, 0), "start of month (EN)")
 
 h.group("Lists, tags, notes, URLs")
 do {
