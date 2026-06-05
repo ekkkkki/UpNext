@@ -29,6 +29,8 @@ struct CreateOutcome {
     var endDate: Date?
     var isAllDay: Bool
     var listName: String
+    /// The created object, so the caller can undo (delete) it.
+    var calendarItem: EKCalendarItem?
 }
 
 enum EventKitError: LocalizedError {
@@ -149,7 +151,7 @@ final class EventKitService: ObservableObject {
 
         try store.save(reminder, commit: true)
         return CreateOutcome(kind: .reminder, title: title, date: item.startDate, endDate: nil,
-                             isAllDay: item.isAllDay, listName: calendar.title)
+                             isAllDay: item.isAllDay, listName: calendar.title, calendarItem: reminder)
     }
 
     private func createEvent(_ item: ParsedItem, title: String, listName: String?) throws -> CreateOutcome {
@@ -181,7 +183,7 @@ final class EventKitService: ObservableObject {
 
         try store.save(event, span: .thisEvent, commit: true)
         return CreateOutcome(kind: .event, title: title, date: event.startDate, endDate: event.endDate,
-                             isAllDay: event.isAllDay, listName: calendar.title)
+                             isAllDay: event.isAllDay, listName: calendar.title, calendarItem: event)
     }
 
     private func resolveCalendar(named name: String?, for type: EKEntityType) -> EKCalendar? {
@@ -216,6 +218,15 @@ final class EventKitService: ObservableObject {
         guard let reminder = hit.reminder else { return }
         reminder.isCompleted.toggle()
         try? store.save(reminder, commit: true)
+    }
+
+    /// Delete a just-created item (undo).
+    func undoCreate(_ item: EKCalendarItem) {
+        if let reminder = item as? EKReminder {
+            try? store.remove(reminder, commit: true)
+        } else if let event = item as? EKEvent {
+            try? store.remove(event, span: .thisEvent, commit: true)
+        }
     }
 
     func delete(_ hit: SearchHit) {

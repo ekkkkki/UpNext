@@ -1,5 +1,6 @@
 import SwiftUI
 import Combine
+import EventKit
 import QuickAddCore
 
 /// Observable state driving the quick-add / search panel.
@@ -77,8 +78,13 @@ final class PanelModel: ObservableObject {
         return v.isEmpty ? nil : v
     }
 
+    /// The most recent creation, so ⌘Z can delete it and restore the text.
+    private var lastCreated: (item: EKCalendarItem, input: String)?
+    @Published private(set) var canUndo = false
+
     func submit() {
         guard canSubmit else { return }
+        let original = input
         do {
             let outcome = try eventKit.create(from: parsed, defaultListName: defaultReminderList)
             let symbol = outcome.kind == .event ? "calendar" : "checklist"
@@ -87,12 +93,27 @@ final class PanelModel: ObservableObject {
                                                     isAllDay: outcome.isAllDay, hasTime: !outcome.isAllDay) {
                 text += " · \(summary)"
             }
+            if let created = outcome.calendarItem {
+                lastCreated = (created, original)
+                canUndo = true
+                text += "  ·  ⌘Z to undo"
+            }
             toast = ToastMessage(text: text, symbol: symbol)
             input = ""
             parsed = ParsedItem()
         } catch {
             errorText = error.localizedDescription
         }
+    }
+
+    /// Delete the last-created item and restore its text for editing.
+    func undoLast() {
+        guard let last = lastCreated else { return }
+        eventKit.undoCreate(last.item)
+        lastCreated = nil
+        canUndo = false
+        toast = ToastMessage(text: "Removed — edit and add again", symbol: "arrow.uturn.backward")
+        input = last.input
     }
 
     func reset() {
@@ -103,6 +124,8 @@ final class PanelModel: ObservableObject {
         toast = nil
         errorText = nil
         mode = .add
+        lastCreated = nil
+        canUndo = false
     }
 
     // MARK: Search flow

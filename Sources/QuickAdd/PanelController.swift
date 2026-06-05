@@ -6,11 +6,20 @@ import SwiftUI
 final class FloatingPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
+    /// Returns true if ⌘Z was consumed as "undo last add" (only when the field is empty).
+    var onCommandZ: (() -> Bool)?
 
     /// A menu-bar accessory app has no main menu, so the standard editing
     /// shortcuts (⌘C/⌘V/⌘X/⌘A/⌘Z) are never bound. Dispatch them to the focused
     /// field's responder chain ourselves so copy/paste work in the panel.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        // "Undo last add" takes ⌘Z only when the field is empty; otherwise the text
+        // field's own undo handles it (below).
+        if modifiers == .command, event.charactersIgnoringModifiers?.lowercased() == "z",
+           onCommandZ?() == true {
+            return true
+        }
         if super.performKeyEquivalent(with: event) { return true }
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         guard flags.contains(.command) else { return false }
@@ -95,6 +104,11 @@ final class PanelController {
         p.isReleasedWhenClosed = false
         p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .transient]
         p.animationBehavior = .utilityWindow
+        p.onCommandZ = { [weak self] in
+            guard let model = self?.model, model.mode == .add, model.input.isEmpty, model.canUndo else { return false }
+            model.undoLast()
+            return true
+        }
         panel = p
 
         // Keep the panel's TOP edge fixed as its height changes (growing input),
