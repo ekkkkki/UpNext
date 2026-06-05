@@ -36,7 +36,8 @@ struct AddView: View {
                     (NSRange(location: $0.location, length: $0.length), Theme.nsColor(for: $0.kind))
                 },
                 onSubmit: { model.submit() },
-                onCancel: { model.onClose?() }
+                onCancel: { model.onClose?() },
+                onSubmitAll: { model.submitAll() }
             )
             .padding(.top, 1)
 
@@ -141,7 +142,11 @@ struct AddView: View {
     private var footer: some View {
         HStack(spacing: 14) {
             KeyHint(key: "↩", label: model.canSubmit ? L("Add", "添加", "追加") : "…")
-            KeyHint(key: "⌘F", label: L("Search", "搜索", "検索"))
+            if model.lineCount > 1 {
+                KeyHint(key: "⌥↩", label: L("Add \(model.lineCount)", "添加 \(model.lineCount) 项", "\(model.lineCount) 件追加"))
+            } else {
+                KeyHint(key: "⌘F", label: L("Search", "搜索", "検索"))
+            }
             KeyHint(key: "esc", label: L("Close", "关闭", "閉じる"))
             Spacer()
             if let list = model.defaultReminderList, parsed.listName == nil, !isEvent {

@@ -80,9 +80,14 @@ final class PanelModel: ObservableObject {
         return v.isEmpty ? nil : v
     }
 
-    /// The most recent creation, so ⌘Z can delete it and restore the text.
-    private var lastCreated: (item: EKCalendarItem, input: String)?
+    /// The most recent creation(s), so ⌘Z can delete them and restore the text.
+    private var lastCreated: (items: [EKCalendarItem], input: String)?
     @Published private(set) var canUndo = false
+
+    /// Number of non-empty lines in the input (for the "Add N items" hint).
+    var lineCount: Int {
+        input.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }.count
+    }
 
     func submit() {
         guard canSubmit else { return }
@@ -98,7 +103,7 @@ final class PanelModel: ObservableObject {
                 text += " · \(summary)"
             }
             if let created = outcome.calendarItem {
-                lastCreated = (created, original)
+                lastCreated = ([created], original)
                 canUndo = true
                 text += "  ·  " + L("⌘Z to undo", "⌘Z 撤销", "⌘Z で取り消し")
             }
@@ -110,14 +115,48 @@ final class PanelModel: ObservableObject {
         }
     }
 
-    /// Delete the last-created item and restore its text for editing.
+    /// Add one item per non-empty line (⌥↩). Falls back to `submit()` for a single line.
+    func submitAll() {
+        let lines = input.split(separator: "\n").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        guard lines.count > 1 else { submit(); return }
+        let original = input
+        let parser = InputParser(now: Date())
+        var created: [EKCalendarItem] = []
+        var failures = 0
+        for line in lines {
+            let item = parser.parse(line)
+            guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { continue }
+            do {
+                if let ci = try eventKit.create(from: item, defaultListName: defaultReminderList).calendarItem {
+                    created.append(ci)
+                }
+            } catch { failures += 1 }
+        }
+        guard !created.isEmpty else {
+            errorText = L("Couldn't add those items.", "无法添加这些项目。", "追加できませんでした。")
+            return
+        }
+        lastCreated = (created, original)
+        canUndo = true
+        let n = created.count
+        var text = L("Added \(n) items", "已添加 \(n) 项", "\(n) 件追加しました")
+        if failures > 0 { text += L(" (\(failures) skipped)", "（跳过 \(failures) 项）", "（\(failures) 件スキップ）") }
+        text += "  ·  " + L("⌘Z to undo", "⌘Z 撤销", "⌘Z で取り消し")
+        toast = ToastMessage(text: text, symbol: "checklist")
+        input = ""
+        parsed = ParsedItem()
+    }
+
+    /// Delete the last-created item(s) and restore the text for editing.
     func undoLast() {
         guard let last = lastCreated else { return }
-        eventKit.undoCreate(last.item)
+        last.items.forEach { eventKit.undoCreate($0) }
         lastCreated = nil
         canUndo = false
-        toast = ToastMessage(text: L("Removed — edit and add again", "已撤销，可修改后重新添加", "取り消しました — 編集して再追加"),
-                             symbol: "arrow.uturn.backward")
+        let msg = last.items.count > 1
+            ? L("Removed \(last.items.count) items", "已撤销 \(last.items.count) 项", "\(last.items.count) 件取り消しました")
+            : L("Removed — edit and add again", "已撤销，可修改后重新添加", "取り消しました — 編集して再追加")
+        toast = ToastMessage(text: msg, symbol: "arrow.uturn.backward")
         input = last.input
     }
 

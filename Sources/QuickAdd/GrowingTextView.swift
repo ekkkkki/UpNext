@@ -16,6 +16,7 @@ struct GrowingTextView: NSViewRepresentable {
     var highlights: [(range: NSRange, color: NSColor)] = []
     var onSubmit: () -> Void
     var onCancel: () -> Void
+    var onSubmitAll: () -> Void = {}
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -108,10 +109,12 @@ struct GrowingTextView: NSViewRepresentable {
             switch commandSelector {
             case #selector(NSResponder.insertNewline(_:)):
                 let mods = NSApp.currentEvent?.modifierFlags ?? []
-                if mods.contains(.shift) || mods.contains(.option) {
-                    textView.insertNewlineIgnoringFieldEditor(self)
+                if mods.contains(.option) {
+                    parent.onSubmitAll()            // ⌥↩ → add each line as its own item
+                } else if mods.contains(.shift) {
+                    textView.insertNewlineIgnoringFieldEditor(self) // ⇧↩ → newline
                 } else {
-                    parent.onSubmit()
+                    parent.onSubmit()               // ↩ → add as one item
                 }
                 return true
             case #selector(NSResponder.cancelOperation(_:)):
