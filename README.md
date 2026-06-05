@@ -136,6 +136,8 @@ Word order is flexible — put the date/time wherever it reads naturally.
 - **Priority**: `!` low · `!!` medium · `!!!` high · `p1`/`p2`/`p3` · or keywords `urgent` / `紧急` / `重要` / `至急`
 - **List / calendar**: `~ListName` (e.g. `~Work`)
 - **Tags**: `#tag`
+- **Location**: detected from address/venue cues, or set explicitly with `@place` at the end
+  (e.g. `lunch tomorrow 12pm @Blue Bottle`)
 - **Notes**: everything after ` // `
 - **Times**: `下午3点`, `晚上8点半`, `中午`, `午後3時`, `3pm`, `3:30pm`, `15:00`, `noon`
 - **Vague times** (default clock): `下午` → 14:00, `早上`/`morning` → 9:00, `tonight`/`今晚` → 19:00

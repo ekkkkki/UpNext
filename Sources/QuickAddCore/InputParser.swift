@@ -148,8 +148,20 @@ public struct InputParser {
         }
         let explicitEvent = dt.isEvent
 
+        // 7a) Explicit "@place" marker (goes last; overrides cue-based detection).
+        var explicitLocation = false
+        if let m = Self.atLocationPattern.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
+            let loc = masked.substring(with: m.range(at: 1)).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !loc.isEmpty {
+                item.location = loc
+                explicitLocation = true
+                addHighlight(m.range, .location)
+                mask(m.range)
+            }
+        }
+
         // 7b) Location & meeting detection (rule-based NLP) on the remaining text.
-        let cueDetection = LocationDetector.detect(in: masked.copyString)
+        let cueDetection = explicitLocation ? nil : LocationDetector.detect(in: masked.copyString)
         let meetingKeyword = LocationDetector.containsMeetingKeyword(masked.copyString)
         if let det = cueDetection {
             // Keep the phrase as the title (don't pull out a location) only for a
@@ -464,6 +476,8 @@ public struct InputParser {
     private static let pLevelPattern = r("(?:^|\\s)(p[1-3])(?=\\s|$)")
     private static let listPattern = r("(?:^|\\s)~([\\p{L}\\p{N}_\\-/]+)")
     private static let tagPattern = r("(?:^|\\s)#([\\p{L}\\p{N}_\\-/]+)")
+    // "@place" — captures to end of line (so multi-word venues work); put it last in the text.
+    private static let atLocationPattern = r("(?:^|\\s)@(\\S[^\\n]*)")
     private static let urlDetector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue)
 
     static let allDayPattern = r("(全天|整天|all[\\s-]?day|終日|终日)")

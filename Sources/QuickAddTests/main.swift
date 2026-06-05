@@ -286,6 +286,21 @@ do {
     h.ok(p.location?.lowercased().contains("floor 12") ?? false, "english location")
 }
 do {
+    // Explicit @place marker.
+    let p = parse("lunch tomorrow 12pm @Blue Bottle Coffee")
+    h.eq(p.kind, .event, "@place + time -> event")
+    h.eq(p.location, "Blue Bottle Coffee", "@ multi-word location")
+    h.eq(p.startDate, ymd(2026, 6, 6, 12, 0), "tomorrow 12pm")
+    h.eq(p.title, "lunch", "title without @place")
+}
+do {
+    let p = parse("买咖啡 @星巴克")
+    h.eq(p.location, "星巴克", "@ cjk location")
+    h.eq(p.title, "买咖啡", "title")
+    h.eq(p.kind, .reminder, "no time -> reminder (with location)")
+}
+h.ok(parse("email bob@example.com the report").location == nil, "email @ is not a location")
+do {
     // Regression: a plain dated to-do is still a reminder.
     let p = parse("买牛奶 明天")
     h.eq(p.kind, .reminder, "no time, no place -> reminder")
