@@ -38,6 +38,15 @@ do {
     h.eq(p.priority, .none, "trailing ! not priority")
     h.eq(p.title, "Wow great job!", "title keeps !")
 }
+h.eq(parse("紧急 修复线上bug").priority, .high, "紧急 -> high")
+h.eq(parse("urgent fix login page").priority, .high, "urgent -> high")
+h.eq(parse("至急 対応する").priority, .high, "至急 -> high (JA)")
+do {
+    let p = parse("重要会议 明天下午3点")
+    h.eq(p.priority, .high, "重要 -> high (kept in title)")
+    h.eq(p.title, "重要会议", "keyword stays in title")
+}
+h.eq(parse("买牛奶").priority, .none, "no keyword -> none")
 
 h.group("Reminder with time")
 do {

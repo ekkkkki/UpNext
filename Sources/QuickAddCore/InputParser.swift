@@ -62,6 +62,13 @@ public struct InputParser {
             mask(range)
         }
 
+        // 3a) Priority keywords ("urgent" / 紧急 / 重要 / 至急). Set priority but keep the
+        //     word in the title (it's descriptive) — just tint it.
+        if item.priority == .none, let kw = Self.matchPriorityKeyword(masked) {
+            item.priority = kw.priority
+            addHighlight(kw.range, .priority)
+        }
+
         // 4) List: ~Name
         if let m = Self.listPattern.firstMatch(in: masked.copyString, options: [], range: masked.fullRange) {
             let nameRange = m.range(at: 1)
@@ -233,6 +240,19 @@ public struct InputParser {
             let p: Priority = token.hasSuffix("1") ? .high : (token.hasSuffix("2") ? .medium : .low)
             return (g, p)
         }
+        return nil
+    }
+
+    // MARK: - Priority keywords
+
+    private static let highPriorityKeyword = r("(紧急|緊急|重要|急ぎ|至急|大事|要紧|urgent|asap|important|critical)")
+    private static let lowPriorityKeyword = r("(不急|低优先级|低優先|low\\s*priority|whenever|someday)")
+
+    private static func matchPriorityKeyword(_ s: NSMutableString) -> (range: NSRange, priority: Priority)? {
+        let str = s.copyString
+        let full = s.fullRange
+        if let m = highPriorityKeyword.firstMatch(in: str, options: [], range: full) { return (m.range, .high) }
+        if let m = lowPriorityKeyword.firstMatch(in: str, options: [], range: full) { return (m.range, .low) }
         return nil
     }
 
