@@ -67,11 +67,14 @@ public struct RecurrenceRule: Equatable, Codable, Sendable {
     public var interval: Int
     /// Calendar weekday numbers (1 = Sunday … 7 = Saturday) for weekly rules on specific days.
     public var weekdays: [Int]
+    /// Stop after this many occurrences (EKRecurrenceEnd). nil = forever.
+    public var occurrenceCount: Int?
 
-    public init(frequency: RecurrenceFrequency, interval: Int = 1, weekdays: [Int] = []) {
+    public init(frequency: RecurrenceFrequency, interval: Int = 1, weekdays: [Int] = [], occurrenceCount: Int? = nil) {
         self.frequency = frequency
         self.interval = max(1, interval)
         self.weekdays = weekdays
+        self.occurrenceCount = occurrenceCount
     }
 
     public var humanDescription: String {

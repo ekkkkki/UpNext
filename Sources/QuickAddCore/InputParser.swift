@@ -89,6 +89,12 @@ public struct InputParser {
             addHighlight(rec.range, .recurrence)
             mask(rec.range)
         }
+        // 6a) Occurrence count ("共7次" / "5回" / "10 times") — only meaningful with a recurrence.
+        if item.recurrence != nil, let cnt = Self.matchOccurrenceCount(masked) {
+            item.recurrence?.occurrenceCount = cnt.count
+            addHighlight(cnt.range, .recurrence)
+            mask(cnt.range)
+        }
 
         // 6b) Lead-time alarm ("提前30分钟" / "30分前" / "1 day before"). Extracted before
         //     the date stage so its number isn't mistaken for an event duration.
@@ -273,6 +279,28 @@ public struct InputParser {
         for (pattern, freq) in Self.recSimplePatterns {
             if let m = pattern.firstMatch(in: str, options: [], range: full) {
                 return RecurrenceMatch(rule: RecurrenceRule(frequency: freq), range: m.range)
+            }
+        }
+        return nil
+    }
+
+    // MARK: - Occurrence count
+
+    private static let occurrenceCountPatterns = [
+        r("(?:共|计|x|×)?\\s*([0-9零〇一二两三四五六七八九十]+)\\s*(?:次|回)"),
+        r("\\b([0-9]+)\\s*times\\b")
+    ]
+
+    private static func matchOccurrenceCount(_ s: NSMutableString) -> (range: NSRange, count: Int)? {
+        let str = s.copyString
+        let full = s.fullRange
+        for regex in occurrenceCountPatterns {
+            guard let m = regex.firstMatch(in: str, options: [], range: full) else { continue }
+            let g = m.range(at: 1)
+            guard g.location != NSNotFound else { continue }
+            let numStr = s.substring(with: g)
+            if let n = Int(numStr) ?? ChineseNumber.parse(numStr), n > 0 {
+                return (m.range, n)
             }
         }
         return nil

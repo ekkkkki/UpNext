@@ -205,6 +205,15 @@ do {
     h.eq(p.recurrence?.frequency, .daily, "every N days")
     h.eq(p.recurrence?.interval, 3, "interval 3")
 }
+do {
+    let p = parse("每天 吃药 共7次")
+    h.eq(p.recurrence?.frequency, .daily, "daily")
+    h.eq(p.recurrence?.occurrenceCount, 7, "共7次 -> count 7")
+    h.eq(p.title, "吃药", "count stripped from title")
+}
+h.eq(parse("毎日 散歩 5回").recurrence?.occurrenceCount, 5, "5回 -> count 5 (JA)")
+h.eq(parse("daily standup 10 times").recurrence?.occurrenceCount, 10, "10 times -> count 10")
+h.ok(parse("每天 喝水").recurrence?.occurrenceCount == nil, "no count -> nil")
 
 h.group("Title cleanup & highlights")
 do {
