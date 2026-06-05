@@ -113,8 +113,10 @@ public struct InputParser {
             addHighlight(forSpec.range, .recurrence)
             mask(forSpec.range)
         }
-        // 6a3) Recurrence end at a weekday ("until Friday" / "到周五" / "金曜まで").
-        if item.recurrence != nil, recurrenceEndSpec == nil, let until = matchUntilWeekday(masked) {
+        // 6a3) Recurrence end at a weekday or date ("until Friday", "until Dec 31",
+        //      "到12月31日", "金曜まで", "12月31日まで").
+        if item.recurrence != nil, recurrenceEndSpec == nil,
+           let until = matchUntilWeekday(masked) ?? matchUntilDate(masked) {
             item.recurrence?.endDate = until.date
             addHighlight(until.range, .recurrence)
             mask(until.range)
@@ -469,6 +471,26 @@ public struct InputParser {
         if let m = Self.untilJA.firstMatch(in: str, options: [], range: full),
            let wd = ["月": 2, "火": 3, "水": 4, "木": 5, "金": 6, "土": 7, "日": 1][s.substring(with: m.range(at: 1))] {
             return (m.range, nextWeekday(wd))
+        }
+        return nil
+    }
+
+    // Recurrence end at an absolute date; the captured fragment is parsed by the date engine.
+    private static let untilDatePatterns: [(NSRegularExpression, Int)] = [
+        (r("\\b(?:until|till)\\s+([A-Za-z]{3,9}\\.?\\s+\\d{1,2}(?:st|nd|rd|th)?|\\d{1,2}/\\d{1,2})"), 1),
+        (r("到\\s*((?:\\d{4}年)?\\d{1,2}月\\d{1,2}[日号]|\\d{1,2}[/\\-]\\d{1,2})"), 1),
+        (r("((?:\\d{4}年)?\\d{1,2}月\\d{1,2}日)\\s*まで"), 1)
+    ]
+
+    private func matchUntilDate(_ s: NSMutableString) -> (range: NSRange, date: Date)? {
+        let str = s.copyString
+        let full = s.fullRange
+        for (regex, group) in Self.untilDatePatterns {
+            guard let m = regex.firstMatch(in: str, options: [], range: full), m.range(at: group).location != NSNotFound else { continue }
+            let fragment = s.substring(with: m.range(at: group))
+            if let date = DateTimeParser.parse(fragment, now: now, calendar: calendar).startDate {
+                return (m.range, date)
+            }
         }
         return nil
     }

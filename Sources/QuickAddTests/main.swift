@@ -255,6 +255,9 @@ h.eq(parse("every day for 3 months").recurrence?.endDate, ymd(2026, 9, 5, 0, 0),
 h.eq(parse("每天 锻炼 到周三").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "到周三 -> end Wed")
 h.eq(parse("daily standup until wednesday").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "until wednesday")
 h.eq(parse("毎日 散歩 水曜まで").recurrence?.endDate, ymd(2026, 6, 10, 0, 0), "水曜まで (ja)")
+h.eq(parse("every day until Dec 31 vitamins").recurrence?.endDate, ymd(2026, 12, 31, 0, 0), "until Dec 31")
+h.eq(parse("每天 吃维生素 到12月31日").recurrence?.endDate, ymd(2026, 12, 31, 0, 0), "到12月31日")
+h.eq(parse("毎日 服薬 12月31日まで").recurrence?.endDate, ymd(2026, 12, 31, 0, 0), "12月31日まで (ja)")
 
 h.group("Title cleanup & highlights")
 do {
