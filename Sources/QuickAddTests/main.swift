@@ -439,6 +439,24 @@ do {
     h.eq(p.leadTimeSeconds, 3600, "combined: lead 1h")
 }
 do {
+    // Recurrence + count + lead-time together must not interfere.
+    let p = parse("每周一三五 上午8点 晨跑 共10次 提前5分钟")
+    h.eq(p.recurrence?.weekdays ?? [], [2, 4, 6], "multi-weekday")
+    h.eq(p.recurrence?.occurrenceCount, 10, "count 10")
+    h.eq(p.leadTimeSeconds, 300, "lead 5m")
+    h.eq(p.startDate.map { cal.dateComponents([.hour, .minute], from: $0) }, DateComponents(hour: 8, minute: 0), "8am")
+    h.eq(p.title, "晨跑", "title clean")
+}
+do {
+    // @place + recurrence end + priority.
+    let p = parse("every tue and thu 7pm yoga @Studio B until friday !!")
+    h.eq(p.recurrence?.weekdays ?? [], [3, 5], "tue/thu")
+    h.eq(p.priority, .medium, "!!")
+    h.eq(p.location, "Studio B", "@place")
+    h.ok(p.recurrence?.endDate != nil, "until friday end set")
+    h.eq(p.title, "yoga", "title")
+}
+do {
     // Event combined.
     let p = parse("团队评审 周五 2-3pm ~Work !! 提前15分钟 // 准备材料")
     h.eq(p.kind, .event, "combined event")
