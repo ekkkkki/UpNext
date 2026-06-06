@@ -9,6 +9,31 @@
 <meta property="og:description" content="原生、免费、开源的 macOS 指挥面板：一眼看清接下来要做什么，再用自然语言记下提醒与日程。" />
 <meta property="og:image" content="shots/upcoming-zh.png" />
 <meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="https://ekkkkki.github.io/Nextor/zh.html" />
+<meta name="keywords" content="macOS 提醒 App, 苹果日历快速添加, 自然语言提醒, 菜单栏 App, ⇧⌘A, 快速记录, 开源, 中文 提醒事项, 日程" />
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org","@type":"SoftwareApplication","name":"Nextor",
+  "applicationCategory":"ProductivityApplication","operatingSystem":"macOS 14+",
+  "description":"免费、开源的 macOS 菜单栏 App。按 ⇧⌘A 从任意界面一眼看到逾期/今天/最近几天的事，再用自然语言（中文 / 日本語 / English）添加苹果「提醒事项」或「日历」事件，自动解析时间、地点、优先级与重复。",
+  "url":"https://ekkkkki.github.io/Nextor/zh.html","downloadUrl":"https://github.com/ekkkkki/Nextor/releases/latest",
+  "softwareVersion":"1.6.0","inLanguage":["zh","en","ja"],"isAccessibleForFree":true,
+  "license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
+  "screenshot":"https://ekkkkki.github.io/Nextor/shots/upcoming-zh.png","author":{"@type":"Person","name":"ekkkkki"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Nextor 是什么？","acceptedAnswer":{"@type":"Answer","text":"Nextor 是一款免费、开源的 macOS 菜单栏 App，用于苹果「提醒事项」和「日历」。按 ⇧⌘A 即可在任意界面看到逾期/今天/最近几天的事，再用自然语言打字添加提醒或日历事件，自动解析时间、地点、优先级和重复。"}},
+    {"@type":"Question","name":"怎么添加提醒或事件？","acceptedAnswer":{"@type":"Answer","text":"在任何界面按 ⇧⌘A，像说话一样打字，例如「明天下午3点 开会 30min」或「买牛奶 周五」。Nextor 会自动判断是提醒还是日历事件并填好细节，保存到苹果提醒事项 / 日历。"}},
+    {"@type":"Question","name":"支持中文和日文吗？","acceptedAnswer":{"@type":"Answer","text":"支持。解析器与界面均完整本地化为中文 / 日本語 / English——星期、时间、时长、重复、地点都能按各语言识别。"}},
+    {"@type":"Question","name":"怎么判断是提醒还是日历事件？","acceptedAnswer":{"@type":"Answer","text":"有时间段或时长（9点-10点、3pm 30min）→ 日历事件；具体时间加地点或会议词 → 也是事件并抽取地址为地点；其余为提醒。"}},
+    {"@type":"Question","name":"免费且开源吗？","acceptedAnswer":{"@type":"Answer","text":"是。基于 MIT 协议免费开源，无账号、无追踪、无订阅。"}},
+    {"@type":"Question","name":"会上传我的数据吗？","acceptedAnswer":{"@type":"Answer","text":"不会。全部在本地运行并直接写入苹果提醒事项与日历；可选的端侧 Apple Intelligence 精修也仅在设备上进行。"}}
+  ]
+}
+</script>
 <style>
   :root { --bg:#0c0d14; --bg2:#15101f; --card:#16171f; --text:#e8e8ee; --muted:#a0a0b0; --accent:#7c6cff; --accent2:#b65cff; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -44,6 +69,16 @@
   footer { text-align:center; color:var(--muted); padding:60px 0 40px; font-size:14px; }
   footer a { color:var(--accent); text-decoration:none; }
   .two { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .eyebrow { display:inline-block; font-size:13px; color:var(--accent); background:#7c6cff1a; border:1px solid #7c6cff33; border-radius:999px; padding:5px 13px; margin:18px 0 4px; }
+  .lede { max-width:720px; margin:0 auto; text-align:center; font-size:17px; }
+  .lede strong { color:var(--text); }
+  .faq { max-width:760px; margin:14px auto 0; }
+  .faq details { background:var(--card); border:1px solid #ffffff12; border-radius:12px; padding:14px 18px; margin:10px 0; }
+  .faq summary { font-weight:600; cursor:pointer; font-size:15.5px; list-style:none; }
+  .faq summary::-webkit-details-marker { display:none; }
+  .faq summary::before { content:"＋"; color:var(--accent); margin-right:10px; }
+  .faq details[open] summary::before { content:"－"; }
+  .faq p { color:var(--muted); font-size:14.5px; margin-top:10px; }
   @media (max-width:680px){ h1{font-size:34px} .two{grid-template-columns:1fr} }
 </style>
 </head>
@@ -52,6 +87,7 @@
   <header>
     <div class="langbar"><a href="index.html">English</a><a href="zh.html" class="active">中文</a><a href="ja.html">日本語</a></div>
     <div class="logo">⌘ Nextor</div>
+    <div class="eyebrow">免费的 macOS 菜单栏 App · 苹果「提醒事项」&amp;「日历」</div>
     <h1>接下来要做什么，<br><span class="grad">打开就看到。</span></h1>
     <p class="sub">免费、开源的 macOS 菜单栏 App。在任何界面按 <span class="kbd">⇧⌘A</span>，逾期 / 今天 / 最近几天的事
       立刻在眼前；再像说话一样打字，就把提醒或日历事件建好——时间、地点、优先级、重复都自动填好。</p>
@@ -62,6 +98,12 @@
   </header>
 
   <img class="shot" src="shots/upcoming-zh.png" alt="Nextor 面板里按日期分组的逾期、今天与最近几天事项" />
+
+  <h2>Nextor 是什么？</h2>
+  <p class="lede"><strong>Nextor 是一款免费、开源的 macOS 菜单栏 App，专为苹果「提醒事项」和「日历」打造。</strong>
+    在任意界面按 <span class="kbd">⇧⌘A</span>，面板打开即是你的日程——逾期、今天、最近几天，按日期分组。像说话一样打字
+    （中文 / 日本語 / English），Nextor 自动判断是提醒还是日历事件，抽取时间、地点、优先级、清单、标签与重复并保存——
+    无需切换 App、无需填表，全部在本地运行。</p>
 
   <h2>一打开，今天要做的事就在眼前</h2>
   <p class="center">⇧⌘A 打开即是你的日程——逾期、今天、最近几天，按日期分组。任意一条都能就地完成或改期，想加新的就直接打字。</p>
@@ -95,6 +137,16 @@
   </div>
 
   <img class="shot" src="shots/search-zh.png" alt="跨提醒与日历的智能搜索" />
+
+  <h2>常见问题</h2>
+  <div class="faq">
+    <details open><summary>Nextor 是什么？</summary><p>一款免费、开源的 macOS 菜单栏 App，用于苹果「提醒事项」和「日历」。按 ⇧⌘A 即可看到逾期/今天/最近几天的事，再用自然语言添加提醒或日历事件，自动解析时间、地点、优先级和重复。</p></details>
+    <details><summary>怎么添加提醒或事件？</summary><p>在任何界面按 ⇧⌘A，像说话一样打字，例如 <span class="kbd">明天下午3点 开会 30min</span> 或 <span class="kbd">买牛奶 周五</span>。Nextor 自动判断类型并填好细节，保存到苹果提醒事项 / 日历。</p></details>
+    <details><summary>支持中文和日文吗？</summary><p>支持。解析器与界面均完整本地化为中文 / 日本語 / English——星期、时间、时长、重复、地点都按各语言识别。</p></details>
+    <details><summary>怎么判断是提醒还是日历事件？</summary><p>有时间段或时长（9点-10点、3pm 30min）→ 日历事件；具体时间加地点或会议词 → 也是事件并抽取地址为地点；其余为提醒。</p></details>
+    <details><summary>免费且开源吗？</summary><p>是。基于 MIT 协议免费开源，无账号、无追踪、无订阅。</p></details>
+    <details><summary>会上传我的数据吗？</summary><p>不会。全部在本地运行并直接写入苹果提醒事项与日历；可选的端侧 Apple Intelligence 精修也仅在设备上进行。</p></details>
+  </div>
 
   <footer>
     基于 MIT 协议免费开源 · <a href="https://github.com/ekkkkki/Nextor">github.com/ekkkkki/Nextor</a><br>

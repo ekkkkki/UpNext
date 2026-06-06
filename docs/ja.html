@@ -9,6 +9,31 @@
 <meta property="og:description" content="ネイティブ・無料・オープンソースの macOS コマンドパネル。次にやることを一目で確認し、自然言語でリマインダーと予定を登録。" />
 <meta property="og:image" content="shots/upcoming-ja.png" />
 <meta name="twitter:card" content="summary_large_image" />
+<link rel="canonical" href="https://ekkkkki.github.io/Nextor/ja.html" />
+<meta name="keywords" content="macOS リマインダー アプリ, Apple カレンダー クイック追加, 自然言語 リマインダー, メニューバー アプリ, ⇧⌘A, クイックキャプチャ, オープンソース, 日本語" />
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org","@type":"SoftwareApplication","name":"Nextor",
+  "applicationCategory":"ProductivityApplication","operatingSystem":"macOS 14+",
+  "description":"無料・オープンソースの macOS メニューバーアプリ。⇧⌘A でどこからでも期限切れ・今日・これからの予定を一目で確認し、自然言語（日本語 / 中文 / English）で Apple「リマインダー」または「カレンダー」に登録。時刻・場所・優先度・繰り返しを自動解析します。",
+  "url":"https://ekkkkki.github.io/Nextor/ja.html","downloadUrl":"https://github.com/ekkkkki/Nextor/releases/latest",
+  "softwareVersion":"1.6.0","inLanguage":["ja","en","zh"],"isAccessibleForFree":true,
+  "license":"https://opensource.org/licenses/MIT","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},
+  "screenshot":"https://ekkkkki.github.io/Nextor/shots/upcoming-ja.png","author":{"@type":"Person","name":"ekkkkki"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org","@type":"FAQPage","mainEntity":[
+    {"@type":"Question","name":"Nextor とは？","acceptedAnswer":{"@type":"Answer","text":"Nextor は Apple「リマインダー」と「カレンダー」のための無料・オープンソースの macOS メニューバーアプリです。⇧⌘A でどこからでも期限切れ・今日・これからの予定を確認し、自然言語で入力するとリマインダーか予定かを自動判別し、時刻・場所・優先度・繰り返しを解析して登録します。"}},
+    {"@type":"Question","name":"リマインダーや予定はどう追加しますか？","acceptedAnswer":{"@type":"Answer","text":"どこでも ⇧⌘A を押して、思ったまま入力します（例：「明日15時 会議 30分」「牛乳を買う 金曜」）。Nextor がリマインダーか予定かを判断し、詳細を埋めて Apple リマインダー / カレンダーに保存します。"}},
+    {"@type":"Question","name":"中国語・日本語に対応していますか？","acceptedAnswer":{"@type":"Answer","text":"はい。解析エンジンとアプリの UI は 日本語 / 中文 / English に完全対応。曜日・時刻・所要時間・繰り返し・場所をそれぞれの言語で認識します。"}},
+    {"@type":"Question","name":"リマインダーと予定はどう判別しますか？","acceptedAnswer":{"@type":"Answer","text":"時間範囲か所要時間（14時-15時、15時 30分）があれば予定、具体的な時刻に場所や会議語があれば住所を場所として抽出した予定、それ以外はリマインダーになります。"}},
+    {"@type":"Question","name":"無料・オープンソースですか？","acceptedAnswer":{"@type":"Answer","text":"はい。MIT ライセンスの無料・オープンソースです。アカウント・追跡・サブスクリプションはありません。"}},
+    {"@type":"Question","name":"データは外部に送信されますか？","acceptedAnswer":{"@type":"Answer","text":"いいえ。すべて端末内で動作し、Apple リマインダー / カレンダーに直接書き込みます。任意のオンデバイス Apple Intelligence 補正も端末内で完結します。"}}
+  ]
+}
+</script>
 <style>
   :root { --bg:#0c0d14; --bg2:#15101f; --card:#16171f; --text:#e8e8ee; --muted:#a0a0b0; --accent:#7c6cff; --accent2:#b65cff; }
   * { box-sizing:border-box; margin:0; padding:0; }
@@ -44,6 +69,16 @@
   footer { text-align:center; color:var(--muted); padding:60px 0 40px; font-size:14px; }
   footer a { color:var(--accent); text-decoration:none; }
   .two { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .eyebrow { display:inline-block; font-size:13px; color:var(--accent); background:#7c6cff1a; border:1px solid #7c6cff33; border-radius:999px; padding:5px 13px; margin:18px 0 4px; }
+  .lede { max-width:720px; margin:0 auto; text-align:center; font-size:17px; }
+  .lede strong { color:var(--text); }
+  .faq { max-width:760px; margin:14px auto 0; }
+  .faq details { background:var(--card); border:1px solid #ffffff12; border-radius:12px; padding:14px 18px; margin:10px 0; }
+  .faq summary { font-weight:600; cursor:pointer; font-size:15.5px; list-style:none; }
+  .faq summary::-webkit-details-marker { display:none; }
+  .faq summary::before { content:"＋"; color:var(--accent); margin-right:10px; }
+  .faq details[open] summary::before { content:"－"; }
+  .faq p { color:var(--muted); font-size:14.5px; margin-top:10px; }
   @media (max-width:680px){ h1{font-size:32px} .two{grid-template-columns:1fr} }
 </style>
 </head>
@@ -52,6 +87,7 @@
   <header>
     <div class="langbar"><a href="index.html">English</a><a href="zh.html">中文</a><a href="ja.html" class="active">日本語</a></div>
     <div class="logo">⌘ Nextor</div>
+    <div class="eyebrow">無料の macOS メニューバーアプリ · Apple リマインダー &amp; カレンダー</div>
     <h1>次にやることが、<br><span class="grad">開いた瞬間に。</span></h1>
     <p class="sub">無料・オープンソースの macOS メニューバーアプリ。<span class="kbd">⇧⌘A</span> を押すと、期限切れ・今日・
       これからの予定がすぐ目に入ります。そのまま思ったまま入力すれば、リマインダー / カレンダーに登録——時刻・場所・
@@ -63,6 +99,12 @@
   </header>
 
   <img class="shot" src="shots/upcoming-ja.png" alt="Nextor のパネルに日付ごとに並ぶ期限切れ・今日・これからの予定" />
+
+  <h2>Nextor とは？</h2>
+  <p class="lede"><strong>Nextor は Apple「リマインダー」と「カレンダー」のための、無料・オープンソースの macOS メニューバーアプリです。</strong>
+    どこでも <span class="kbd">⇧⌘A</span> を押すと、パネルがそのまま予定一覧（期限切れ・今日・これから）に。思ったまま入力すれば
+    （日本語 / 中文 / English）、リマインダーか予定かを自動判別し、時刻・場所・優先度・リスト・タグ・繰り返しを取り出して
+    保存します。アプリの切り替えもフォーム入力も不要、すべて端末内で動作します。</p>
 
   <h2>開いた瞬間に、今日やることが目の前に</h2>
   <p class="center">⇧⌘A を押すとそのまま予定一覧——期限切れ・今日・これからを日付ごとに表示。どれもその場で完了・再スケジュール、新規追加はそのまま入力するだけ。</p>
@@ -96,6 +138,16 @@
   </div>
 
   <img class="shot" src="shots/search-ja.png" alt="リマインダーとカレンダーを横断する検索" />
+
+  <h2>よくある質問</h2>
+  <div class="faq">
+    <details open><summary>Nextor とは？</summary><p>Apple「リマインダー」と「カレンダー」のための無料・オープンソースの macOS メニューバーアプリ。⇧⌘A で期限切れ・今日・これからの予定を確認し、自然言語で入力するとリマインダーか予定かを自動判別し、時刻・場所・優先度・繰り返しを解析して登録します。</p></details>
+    <details><summary>リマインダーや予定はどう追加しますか？</summary><p>どこでも ⇧⌘A を押して、思ったまま入力します（例：<span class="kbd">明日15時 会議 30分</span>、<span class="kbd">牛乳を買う 金曜</span>）。Nextor が種類を判断し詳細を埋めて、Apple リマインダー / カレンダーに保存します。</p></details>
+    <details><summary>中国語・日本語に対応していますか？</summary><p>はい。解析エンジンと UI は 日本語 / 中文 / English に完全対応。曜日・時刻・所要時間・繰り返し・場所をそれぞれの言語で認識します。</p></details>
+    <details><summary>リマインダーと予定はどう判別しますか？</summary><p>時間範囲か所要時間（14時-15時、15時 30分）→ 予定、具体的な時刻＋場所や会議語 → 住所を場所にした予定、それ以外 → リマインダー。</p></details>
+    <details><summary>無料・オープンソースですか？</summary><p>はい。MIT ライセンスの無料・オープンソース。アカウント・追跡・サブスクリプションなし。</p></details>
+    <details><summary>データは外部に送信されますか？</summary><p>いいえ。すべて端末内で動作し、Apple リマインダー / カレンダーに直接書き込みます。任意の Apple Intelligence 補正も端末内で完結します。</p></details>
+  </div>
 
   <footer>
     MIT ライセンスの無料・オープンソース · <a href="https://github.com/ekkkkki/Nextor">github.com/ekkkkki/Nextor</a><br>
