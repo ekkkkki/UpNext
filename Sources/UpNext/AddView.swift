@@ -111,24 +111,42 @@ struct AddView: View {
         let cal = Calendar.current
         let now = Date()
         let startToday = cal.startOfDay(for: now)
+        let overdueLabel = L("Overdue", "已逾期", "期限切れ")
+        let noDateLabel = L("No date", "无日程", "日付なし")
+
         var order: [String] = []
         var map: [String: [SearchHit]] = [:]
+        var ranks: [String: Double] = [:]
         var overdueLabels: Set<String> = []
-        let overdueLabel = L("Overdue", "已逾期", "期限切れ")
-        let sorted = model.upcoming.sorted { ($0.date ?? .distantFuture) < ($1.date ?? .distantFuture) }
-        for hit in sorted {
-            guard let d = hit.date else { continue }
-            let label: String
-            if hit.kind == .reminder && d < startToday {
-                label = overdueLabel
-                overdueLabels.insert(label)
-            } else {
-                label = DateFormatting.relativeDay(d, calendar: cal, now: now)
-            }
-            if map[label] == nil { order.append(label); map[label] = [] }
+
+        func bucket(_ label: String, _ hit: SearchHit, rank: Double, overdue: Bool = false) {
+            if map[label] == nil { order.append(label); map[label] = []; ranks[label] = rank }
             map[label]?.append(hit)
+            if overdue { overdueLabels.insert(label) }
         }
-        return order.map { UpcomingGroup(label: $0, overdue: overdueLabels.contains($0), items: map[$0] ?? []) }
+
+        // Dated items, chronological. Overdue reminders → one group (rank -1); each day → its
+        // offset from today (today 0, tomorrow 1, …).
+        let dated = model.upcoming.filter { $0.date != nil }.sorted { $0.date! < $1.date! }
+        for hit in dated {
+            let d = hit.date!
+            if hit.kind == .reminder && d < startToday {
+                bucket(overdueLabel, hit, rank: -1, overdue: true)
+            } else {
+                let label = DateFormatting.relativeDay(d, calendar: cal, now: now)
+                let days = cal.dateComponents([.day], from: startToday, to: cal.startOfDay(for: d)).day ?? 0
+                bucket(label, hit, rank: Double(days))
+            }
+        }
+        // No-date reminders sit right after Today (rank 0.5), before Tomorrow — a jotted
+        // reminder is usually something to do soon.
+        for hit in model.upcoming where hit.date == nil {
+            bucket(noDateLabel, hit, rank: 0.5)
+        }
+
+        return order
+            .sorted { (ranks[$0] ?? 0) < (ranks[$1] ?? 0) }
+            .map { UpcomingGroup(label: $0, overdue: overdueLabels.contains($0), items: map[$0] ?? []) }
     }
 
     private var hintRow: some View {

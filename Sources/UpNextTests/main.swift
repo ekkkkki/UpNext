@@ -400,6 +400,18 @@ do {
     h.eq(p.startDate, ymd(2026, 6, 5, 19, 0), "今晚 -> 19:00 today")
     h.eq(p.title, "看电影", "title")
 }
+do {
+    // A vague period already past *today* must not pin a past clock time (it would be
+    // instantly overdue). Drop the time → date-only today.
+    let evening = cal.date(from: DateComponents(year: 2026, month: 6, day: 5, hour: 21, minute: 30))!
+    let p = InputParser(now: evening, calendar: cal).parse("装修方案 今晚")
+    h.eq(p.startDate, ymd(2026, 6, 5, 0, 0), "今晚 after 19:00 -> today, date-only")
+    h.ok(!p.hasTime, "no pinned past time")
+    h.eq(p.title, "装修方案", "title")
+    // But an explicit clock keeps its time even if past today.
+    let q = InputParser(now: evening, calendar: cal).parse("装修方案 今天15点")
+    h.ok(q.hasTime, "explicit clock keeps time")
+}
 h.eq(parse("明天早上 跑步").startDate, ymd(2026, 6, 6, 9, 0), "早上 -> 09:00")
 h.eq(parse("下午 提交报告").startDate, ymd(2026, 6, 5, 14, 0), "下午 -> 14:00 today")
 do {

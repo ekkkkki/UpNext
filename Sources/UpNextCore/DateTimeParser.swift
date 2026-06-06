@@ -95,20 +95,31 @@ enum DateTimeParser {
 
         // 4) Single time, optionally followed by a duration -> reminder or event.
         //    Fall back to a vague period word ("下午" / "tonight" / "朝") → a default clock.
-        let time = findTime(scanner, eveningHint: day?.eveningHint ?? false)
-            ?? findBareTimeWord(scanner, eveningHint: day?.eveningHint ?? false)
-        if let time = time {
+        let explicitTime = findTime(scanner, eveningHint: day?.eveningHint ?? false)
+        let vagueTime = explicitTime == nil ? findBareTimeWord(scanner, eveningHint: day?.eveningHint ?? false) : nil
+        if let time = explicitTime ?? vagueTime {
             let baseDay = day?.date ?? cal.startOfDay(for: now)
             var start = combine(day: baseDay, clock: time.clock, cal: cal)
-            // Bare time with no day, already past today -> roll to tomorrow.
-            if day == nil, start < now {
+            let dur = findDuration(scanner)
+            if day == nil, dur == nil, start < now {
+                // Bare time with no day, already past today -> roll to tomorrow.
                 start = cal.date(byAdding: .day, value: 1, to: start) ?? start
+            } else if vagueTime != nil, dur == nil, start < now {
+                // A vague period ("今晚" / "下午" / "morning") that has already passed today:
+                // don't pin a specific clock time in the past (it would be instantly overdue).
+                // Keep the day but drop the time, so it lands under Today as a date-only item.
+                result.startDate = cal.startOfDay(for: start)
+                result.isAllDay = true
+                result.hasTime = false
+                result.consumed.append(ConsumedRange(range: time.range, kind: .time))
+                if let d = day { result.consumed.append(ConsumedRange(range: d.range, kind: .date)) }
+                return result
             }
             result.startDate = start
             result.hasTime = true
             result.consumed.append(ConsumedRange(range: time.range, kind: .time))
 
-            if let dur = findDuration(scanner) {
+            if let dur = dur {
                 result.endDate = start.addingTimeInterval(dur.seconds)
                 result.isEvent = true
                 result.consumed.append(ConsumedRange(range: dur.range, kind: .duration))
