@@ -79,8 +79,7 @@ final class PanelController {
         // Refetch both glances on every open — the panel's SwiftUI view is built once and
         // reused, so .onAppear won't fire again. Loading both (not just the current mode) means
         // switching Add↔Search in-panel is instant, with no fetch gap / filter-hint flash.
-        model.loadUpcoming()
-        model.loadAgenda()
+        model.loadGlances()
 
         let front = NSWorkspace.shared.frontmostApplication
         if front?.bundleIdentifier != Bundle.main.bundleIdentifier { previousApp = front }
@@ -116,8 +115,7 @@ final class PanelController {
         panel.setContentSize(NSSize(width: 640, height: 220))
         panel.contentView?.layoutSubtreeIfNeeded()
         // Warm the agenda/upcoming caches too, so the first open already has data.
-        model.loadUpcoming()
-        model.loadAgenda()
+        model.loadGlances()
     }
 
     private func buildPanel() {

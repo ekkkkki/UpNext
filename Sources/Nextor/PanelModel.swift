@@ -305,6 +305,19 @@ final class PanelModel: ObservableObject {
         }
     }
 
+    /// Load both glances (Upcoming + Today) from a single EventKit fetch — used when opening the
+    /// panel, so a fresh open hits the store once instead of four times.
+    func loadGlances() {
+        guard liveSearchEnabled else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let g = await self.eventKit.glances(days: 7)
+            self.upcoming = g.upcoming
+            self.agenda = g.agenda
+            self.agendaLoaded = true
+        }
+    }
+
     /// Load the upcoming glance for the add panel (overdue + today + next ~7 days).
     func loadUpcoming() {
         guard liveSearchEnabled else { return }

@@ -290,25 +290,53 @@ final class EventKitService: ObservableObject {
 
     // MARK: Search
 
-    /// Today's glance: incomplete reminders due today or overdue, plus events occurring
-    /// today. Used as the default view when search is opened with no query.
+    // Pure filters over already-fetched hits, shared by agenda()/upcoming()/glances() so the
+    // three always agree (and so glances() can feed both from a single fetch).
+
+    /// Today's glance: incomplete reminders due today or overdue + today's not-yet-ended events.
+    static func agendaHits(reminders: [SearchHit], events: [SearchHit], now: Date, cal: Calendar) -> [SearchHit] {
+        let startOfToday = cal.startOfDay(for: now)
+        guard let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) else { return [] }
+        var hits = reminders.filter { h in
+            guard !h.isCompleted, let d = h.date else { return false }
+            return d < endOfToday // overdue or due today
+        }
+        hits += events.filter { h in
+            guard let d = h.date else { return false }
+            return d >= startOfToday && d < endOfToday && (h.endDate ?? d) >= now
+        }
+        return Array(hits.sorted(by: Self.ordering).prefix(50))
+    }
+
+    /// Overdue + today + the next `days` days, plus the most-recent no-date reminders.
+    static func upcomingHits(reminders: [SearchHit], events: [SearchHit], now: Date, cal: Calendar, days: Int) -> [SearchHit] {
+        let startOfToday = cal.startOfDay(for: now)
+        guard let end = cal.date(byAdding: .day, value: days, to: startOfToday) else { return [] }
+        var hits = reminders.filter { h in
+            guard !h.isCompleted, let d = h.date else { return false }
+            return d < end // overdue + due within the window
+        }
+        // No-date reminders: a jotted reminder usually means "do this soon", so surface the most
+        // recently created ones — otherwise they'd be invisible in a date-based agenda.
+        hits += reminders
+            .filter { !$0.isCompleted && $0.date == nil }
+            .sorted { ($0.reminder?.creationDate ?? .distantPast) > ($1.reminder?.creationDate ?? .distantPast) }
+            .prefix(25)
+        hits += events.filter { h in
+            guard let d = h.date else { return false }
+            return d >= startOfToday && d < end && (h.endDate ?? d) >= now
+        }
+        return Array(hits.sorted(by: Self.ordering).prefix(80))
+    }
+
+    /// Today's glance: incomplete reminders due today or overdue, plus events occurring today.
     func agenda(now: Date = Date()) async -> [SearchHit] {
         let cal = Calendar.current
         let startOfToday = cal.startOfDay(for: now)
         guard let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) else { return [] }
-        var hits: [SearchHit] = []
         let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal, incompleteOnly: true)
-        hits += reminders.filter { h in
-            guard !h.isCompleted, let d = h.date else { return false }
-            return d < endOfToday // overdue or due today
-        }
         let events = fetchEvents(query: SearchQuery(), now: now, cal: cal, window: (startOfToday, endOfToday))
-        hits += events.filter { h in
-            guard let d = h.date else { return false }
-            // Today's events, excluding ones that have already ended.
-            return d >= startOfToday && d < endOfToday && (h.endDate ?? d) >= now
-        }
-        return Array(hits.sorted(by: Self.ordering).prefix(50))
+        return Self.agendaHits(reminders: reminders, events: events, now: now, cal: cal)
     }
 
     /// Overdue + today + the next `days` days, for the at-a-glance list in the add panel.
@@ -316,27 +344,21 @@ final class EventKitService: ObservableObject {
         let cal = Calendar.current
         let startOfToday = cal.startOfDay(for: now)
         guard let end = cal.date(byAdding: .day, value: days, to: startOfToday) else { return [] }
-        var hits: [SearchHit] = []
         let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal, incompleteOnly: true)
-        // Dated reminders: overdue + due within the window.
-        hits += reminders.filter { h in
-            guard !h.isCompleted, let d = h.date else { return false }
-            return d < end
-        }
-        // No-date reminders: a jotted reminder usually means "do this soon", so surface the
-        // most recently created ones — otherwise they'd be invisible in a date-based agenda.
-        let undated = reminders
-            .filter { !$0.isCompleted && $0.date == nil }
-            .sorted { ($0.reminder?.creationDate ?? .distantPast) > ($1.reminder?.creationDate ?? .distantPast) }
-            .prefix(25)
-        hits += undated
-        // Events: today + within the window, excluding ones that have already ended.
         let events = fetchEvents(query: SearchQuery(), now: now, cal: cal, window: (startOfToday, end))
-        hits += events.filter { h in
-            guard let d = h.date else { return false }
-            return d >= startOfToday && d < end && (h.endDate ?? d) >= now
-        }
-        return Array(hits.sorted(by: Self.ordering).prefix(80))
+        return Self.upcomingHits(reminders: reminders, events: events, now: now, cal: cal, days: days)
+    }
+
+    /// Both glances from a single fetch — the agenda is a subset of upcoming, so opening the panel
+    /// needn't fetch the calendar/reminders store twice.
+    func glances(days: Int = 7, now: Date = Date()) async -> (upcoming: [SearchHit], agenda: [SearchHit]) {
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: now)
+        guard let end = cal.date(byAdding: .day, value: days, to: startOfToday) else { return ([], []) }
+        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal, incompleteOnly: true)
+        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal, window: (startOfToday, end))
+        return (Self.upcomingHits(reminders: reminders, events: events, now: now, cal: cal, days: days),
+                Self.agendaHits(reminders: reminders, events: events, now: now, cal: cal))
     }
 
     func search(_ query: SearchQuery, now: Date = Date(), limit: Int = 200) async -> [SearchHit] {
