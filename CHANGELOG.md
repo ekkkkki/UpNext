@@ -2,6 +2,23 @@
 
 All notable changes to UpNext. Dates are when the work landed on `main`.
 
+## v1.5.1 — 2026-06-07
+
+A correctness + performance pass on the ⇧⌘A panel.
+
+- **Fixed the paste freeze.** Pasting a long, multi-line blob (an event page, an invite) no
+  longer hangs the app. Root cause: the input field's `sizeThatFits` mutated the view *during*
+  SwiftUI's measurement, which re-entered layout every display cycle in a presented window
+  (100% CPU). Sizing is now a pure, cached, offscreen measurement.
+- **Fixed IME composition.** Half-typed 中文 / 日本語 no longer disappears while the candidate
+  window is up — the field is never re-synced or disturbed while a composition is active; the
+  text commits as one piece.
+- **Snappier overall.** Parsing is debounced off the keystroke path, the field no longer echoes
+  your own typing back, and redundant re-tinting is skipped. Measured in-app: panel opens in
+  ~15 ms on reopen, typing ~22 ms/keystroke, a long paste settles well under a second.
+- A pasted multi-line blob is parsed as **one event** — first line as the name, date/time and
+  location pulled from the whole text, and the rest kept as notes.
+
 ## v1.5.0 — 2026-06-06
 
 - **QuickAdd is now UpNext.** The panel grew from an add-only box into a glance-and-add command

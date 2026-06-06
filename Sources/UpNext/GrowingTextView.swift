@@ -83,7 +83,16 @@ struct GrowingTextView: NSViewRepresentable {
                 tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
             }
         }
-        applyHighlights(to: tv)
+        // Re-tinting sets attributes across the whole string and nudges TextKit, so skip it when
+        // neither the text nor the highlight ranges changed since the last render.
+        var hasher = Hasher()
+        hasher.combine(text)
+        for hl in highlights { hasher.combine(hl.range.location); hasher.combine(hl.range.length) }
+        let sig = hasher.finalize()
+        if context.coordinator.lastHighlightSig != sig {
+            context.coordinator.lastHighlightSig = sig
+            applyHighlights(to: tv)
+        }
     }
 
     /// Report the content-driven height so SwiftUI lays the field out at the right size.
@@ -135,6 +144,8 @@ struct GrowingTextView: NSViewRepresentable {
             return tv
         }()
         private var measureCache: (text: String, width: CGFloat, height: CGFloat)?
+        /// Signature of the last-applied (text + highlight ranges), to skip redundant re-tinting.
+        var lastHighlightSig = 0
 
         init(_ parent: GrowingTextView) { self.parent = parent }
 
