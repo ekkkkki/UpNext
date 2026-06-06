@@ -100,6 +100,11 @@ enum RenderShots {
             m.mode = .search
             m.setPreviewAgenda(sampleHitsEN())
         }
+        shot("upcoming-en") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.setPreviewUpcoming(sampleHitsEN())
+        }
 
         // First-run onboarding (English).
         L10n.override = .en
@@ -147,6 +152,11 @@ enum RenderShots {
             m.searchText = "due:week"
             m.setPreviewResults(sampleHits())
         }
+        shot("upcoming-zh") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.setPreviewUpcoming(sampleHits())
+        }
 
         // Japanese set for the 日本語 landing page.
         L10n.override = .ja
@@ -168,6 +178,11 @@ enum RenderShots {
             m.mode = .search
             m.searchText = "due:week"
             m.setPreviewResults(sampleHitsJA())
+        }
+        shot("upcoming-ja") { m in
+            m.reset()
+            m.liveSearchEnabled = false
+            m.setPreviewUpcoming(sampleHitsJA())
         }
 
         L10n.override = nil

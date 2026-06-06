@@ -303,6 +303,25 @@ final class EventKitService: ObservableObject {
         return Array(hits.sorted(by: Self.ordering).prefix(50))
     }
 
+    /// Overdue + today + the next `days` days, for the at-a-glance list in the add panel.
+    func upcoming(days: Int = 7, now: Date = Date()) async -> [SearchHit] {
+        let cal = Calendar.current
+        let startOfToday = cal.startOfDay(for: now)
+        guard let end = cal.date(byAdding: .day, value: days, to: startOfToday) else { return [] }
+        var hits: [SearchHit] = []
+        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal)
+        hits += reminders.filter { h in
+            guard !h.isCompleted, let d = h.date else { return false }
+            return d < end // overdue + due within the window
+        }
+        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal)
+        hits += events.filter { h in
+            guard let d = h.date else { return false }
+            return d >= startOfToday && d < end
+        }
+        return Array(hits.sorted(by: Self.ordering).prefix(80))
+    }
+
     func search(_ query: SearchQuery, now: Date = Date(), limit: Int = 200) async -> [SearchHit] {
         var hits: [SearchHit] = []
         let cal = Calendar.current

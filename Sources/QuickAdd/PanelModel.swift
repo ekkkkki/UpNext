@@ -23,6 +23,8 @@ final class PanelModel: ObservableObject {
     @Published var selectedIndex = 0
     /// Today/overdue glance shown when search opens with no query.
     @Published private(set) var agenda: [SearchHit] = []
+    /// Overdue + today + next-days list shown in the add panel when the input is empty.
+    @Published private(set) var upcoming: [SearchHit] = []
     /// Disabled during offscreen screenshot rendering so injected results aren't clobbered.
     var liveSearchEnabled = true
 
@@ -110,6 +112,7 @@ final class PanelModel: ObservableObject {
             toast = ToastMessage(text: text, symbol: symbol)
             input = ""
             parsed = ParsedItem()
+            loadUpcoming()
         } catch {
             errorText = error.localizedDescription
         }
@@ -145,6 +148,7 @@ final class PanelModel: ObservableObject {
         toast = ToastMessage(text: text, symbol: "checklist")
         input = ""
         parsed = ParsedItem()
+        loadUpcoming()
     }
 
     /// Delete the last-created item(s) and restore the text for editing.
@@ -153,6 +157,7 @@ final class PanelModel: ObservableObject {
         last.items.forEach { eventKit.undoCreate($0) }
         lastCreated = nil
         canUndo = false
+        loadUpcoming()
         let msg = last.items.count > 1
             ? L("Removed \(last.items.count) items", "已撤销 \(last.items.count) 项", "\(last.items.count) 件取り消しました")
             : L("Removed — edit and add again", "已撤销，可修改后重新添加", "取り消しました — 編集して再追加")
@@ -185,6 +190,7 @@ final class PanelModel: ObservableObject {
     func reschedule(_ hit: SearchHit, to date: Date) {
         eventKit.reschedule(hit, to: date)
         loadAgenda()
+        loadUpcoming()
         refreshSearch()
     }
 
@@ -238,13 +244,32 @@ final class PanelModel: ObservableObject {
         }
     }
 
-    /// Inject results/agenda for offscreen screenshot rendering (no EventKit fetch).
+    /// Load the upcoming glance for the add panel (overdue + today + next ~7 days).
+    func loadUpcoming() {
+        guard liveSearchEnabled else { return }
+        Task { [weak self] in
+            guard let self else { return }
+            let items = await self.eventKit.upcoming(days: 7)
+            self.upcoming = items
+        }
+    }
+    func upcomingToggle(_ hit: SearchHit) {
+        eventKit.toggleCompletion(hit)
+        loadUpcoming()
+    }
+    func upcomingDelete(_ hit: SearchHit) {
+        eventKit.delete(hit)
+        upcoming.removeAll { $0.id == hit.id }
+    }
+
+    /// Inject results/agenda/upcoming for offscreen screenshot rendering (no EventKit fetch).
     func setPreviewResults(_ hits: [SearchHit]) {
         results = hits
         selectedIndex = 0
         isSearching = false
     }
     func setPreviewAgenda(_ hits: [SearchHit]) { agenda = hits }
+    func setPreviewUpcoming(_ hits: [SearchHit]) { upcoming = hits }
 
     func toggleComplete(_ hit: SearchHit) {
         eventKit.toggleCompletion(hit)

@@ -25,6 +25,8 @@ Calendar. No app-switching, no forms.
 
 - **Global hot key ⇧⌘A** — a floating quick-add panel drops in over any app (Spotlight-style),
   grabs focus, and returns it when dismissed.
+- **Glance + add** — opening the panel shows your **overdue / today / upcoming** items grouped by
+  day, so you see what's next *before* you type. Complete or reschedule them right there.
 - **Natural-language parsing** (中文 + English), with a **live preview** of how your text will be
   interpreted before you commit.
 - **Reminder vs. event, decided automatically**
@@ -48,6 +50,10 @@ Calendar. No app-switching, no forms.
 ---
 
 ## Screenshots
+
+Open ⇧⌘A and your day is right there — overdue, today, and the next few days, grouped:
+
+<img src="docs/shots/upcoming-en.png" width="720" alt="Upcoming agenda inside the quick-add panel">
 
 | Add a reminder | Add an event |
 |---|---|

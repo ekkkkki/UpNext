@@ -12,12 +12,40 @@ struct AddView: View {
         VStack(alignment: .leading, spacing: 0) {
             inputRow
             Divider().opacity(0.5)
-            previewArea
+            if let toast = model.toast {
+                banner(toast.symbol, toast.text, .green)
+            } else if let error = model.errorText {
+                banner("exclamationmark.triangle.fill", error, .orange)
+            }
+            contentArea
             footer
         }
-        .onAppear { focusSoon() }
-        .onChange(of: model.mode) { if model.mode == .add { focusSoon() } }
+        .onAppear { focusSoon(); model.loadUpcoming() }
+        .onChange(of: model.mode) { if model.mode == .add { focusSoon(); model.loadUpcoming() } }
         .onChange(of: model.toast) { if model.toast != nil { focusSoon() } }
+    }
+
+    @ViewBuilder
+    private var contentArea: some View {
+        if !model.input.isEmpty {
+            interpretation
+        } else if !model.upcoming.isEmpty {
+            upcomingList
+        } else {
+            hintRow
+        }
+    }
+
+    @ViewBuilder
+    private func banner(_ symbol: String, _ text: String, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).foregroundStyle(color)
+            Text(text).font(.system(size: 12.5, weight: .medium)).lineLimit(2)
+            Spacer()
+        }
+        .padding(.horizontal, 18).padding(.vertical, 9)
+        .background(color.opacity(0.10))
+        .transition(.opacity)
     }
 
     private var inputRow: some View {
@@ -48,28 +76,58 @@ struct AddView: View {
         .padding(.vertical, 14)
     }
 
-    @ViewBuilder
-    private var previewArea: some View {
-        if let toast = model.toast {
-            HStack(spacing: 8) {
-                Image(systemName: toast.symbol).foregroundStyle(.green)
-                Text(toast.text).font(.system(size: 13, weight: .medium))
-                Spacer()
+    // MARK: Upcoming agenda (shown when the input is empty)
+
+    private var upcomingList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
+                ForEach(groupedUpcoming, id: \.label) { group in
+                    Section {
+                        ForEach(group.items) { hit in
+                            SearchRow(hit: hit,
+                                      onToggle: { model.upcomingToggle(hit) },
+                                      onDelete: { model.upcomingDelete(hit) },
+                                      onReschedule: { model.reschedule(hit, to: $0) })
+                            Divider().opacity(0.3).padding(.leading, 44)
+                        }
+                    } header: {
+                        Text(group.label.uppercased())
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(group.overdue ? Color.red : .secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 18).padding(.top, 8).padding(.bottom, 3)
+                            .background(.bar)
+                    }
+                }
             }
-            .padding(.horizontal, 18).padding(.vertical, 12)
-            .transition(.opacity)
-        } else if let error = model.errorText {
-            HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
-                Text(error).font(.system(size: 12)).foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 18).padding(.vertical, 12)
-        } else if model.input.isEmpty {
-            hintRow
-        } else {
-            interpretation
         }
+        .frame(maxHeight: 360)
+    }
+
+    private struct UpcomingGroup { let label: String; let overdue: Bool; let items: [SearchHit] }
+
+    private var groupedUpcoming: [UpcomingGroup] {
+        let cal = Calendar.current
+        let now = Date()
+        let startToday = cal.startOfDay(for: now)
+        var order: [String] = []
+        var map: [String: [SearchHit]] = [:]
+        var overdueLabels: Set<String> = []
+        let overdueLabel = L("Overdue", "已逾期", "期限切れ")
+        let sorted = model.upcoming.sorted { ($0.date ?? .distantFuture) < ($1.date ?? .distantFuture) }
+        for hit in sorted {
+            guard let d = hit.date else { continue }
+            let label: String
+            if hit.kind == .reminder && d < startToday {
+                label = overdueLabel
+                overdueLabels.insert(label)
+            } else {
+                label = DateFormatting.relativeDay(d, calendar: cal, now: now)
+            }
+            if map[label] == nil { order.append(label); map[label] = [] }
+            map[label]?.append(hit)
+        }
+        return order.map { UpcomingGroup(label: $0, overdue: overdueLabels.contains($0), items: map[$0] ?? []) }
     }
 
     private var hintRow: some View {
