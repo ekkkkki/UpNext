@@ -16,7 +16,7 @@ jobs:
       - name: Swift version
         run: swift --version
 
-      # Tests depend only on QuickAddCore (pure logic), so they build and run on any
+      # Tests depend only on UpNextCore (pure logic), so they build and run on any
       # macOS runner — the full app target needs the macOS 26 SDK (FoundationModels).
       - name: Run test suite (release)
-        run: swift run -c release QuickAddTests
+        run: swift run -c release UpNextTests

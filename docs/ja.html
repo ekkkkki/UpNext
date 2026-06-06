@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>QuickAdd — どこからでもリマインダー・カレンダー予定を一発登録 · macOS</title>
-<meta name="description" content="無料・オープンソースの macOS メニューバーアプリ。⇧⌘A を押して普通の言葉で入力すると、リマインダーかカレンダー予定かを自動判別し、時刻・場所・優先度・繰り返しを解析します。" />
-<meta property="og:title" content="QuickAdd — ワンキーでリマインダーと予定を登録" />
-<meta property="og:description" content="ネイティブ・無料・オープンソースの macOS クイック入力。自然言語パースに対応。" />
-<meta property="og:image" content="shots/hero-ja.png" />
+<title>UpNext — 開いた瞬間に「次にやること」が見えて、一発登録 · macOS</title>
+<meta name="description" content="無料・オープンソースの macOS メニューバーアプリ。⇧⌘A を押すと期限切れ・今日・これからの予定がすぐ目に入り、そのまま普通の言葉で入力するとリマインダーかカレンダー予定かを自動判別。時刻・場所・優先度・繰り返しも解析します。" />
+<meta property="og:title" content="UpNext — 次にやることを見て、すぐ追加" />
+<meta property="og:description" content="ネイティブ・無料・オープンソースの macOS コマンドパネル。次にやることを一目で確認し、自然言語でリマインダーと予定を登録。" />
+<meta property="og:image" content="shots/upcoming-ja.png" />
 <meta name="twitter:card" content="summary_large_image" />
 <style>
   :root { --bg:#0c0d14; --bg2:#15101f; --card:#16171f; --text:#e8e8ee; --muted:#a0a0b0; --accent:#7c6cff; --accent2:#b65cff; }
@@ -51,17 +51,21 @@
 <div class="wrap">
   <header>
     <div class="langbar"><a href="index.html">English</a><a href="zh.html">中文</a><a href="ja.html" class="active">日本語</a></div>
-    <div class="logo">⌘ QuickAdd</div>
-    <h1>思いついたことを、<br><span class="grad">ワンキーで。</span></h1>
-    <p class="sub">無料・オープンソースの macOS メニューバーアプリ。どの画面でも <span class="kbd">⇧⌘A</span> を押して、
-      思ったまま入力するだけ。時刻・場所・優先度・繰り返しまで埋めて、リマインダー / カレンダーに登録します。</p>
+    <div class="logo">⌘ UpNext</div>
+    <h1>次にやることが、<br><span class="grad">開いた瞬間に。</span></h1>
+    <p class="sub">無料・オープンソースの macOS メニューバーアプリ。<span class="kbd">⇧⌘A</span> を押すと、期限切れ・今日・
+      これからの予定がすぐ目に入ります。そのまま思ったまま入力すれば、リマインダー / カレンダーに登録——時刻・場所・
+      優先度・繰り返しまで自動で。</p>
     <div class="cta">
-      <a class="btn btn-primary" href="https://github.com/ekkkkki/QuickAdd/releases/latest">macOS 版をダウンロード</a>
-      <a class="btn btn-ghost" href="https://github.com/ekkkkki/QuickAdd">GitHub で見る</a>
+      <a class="btn btn-primary" href="https://github.com/ekkkkki/UpNext/releases/latest">macOS 版をダウンロード</a>
+      <a class="btn btn-ghost" href="https://github.com/ekkkkki/UpNext">GitHub で見る</a>
     </div>
   </header>
 
-  <img class="shot" src="shots/hero-ja.png" alt="入力した一行を、場所つきのカレンダー予定に変換する QuickAdd" />
+  <img class="shot" src="shots/upcoming-ja.png" alt="UpNext のパネルに日付ごとに並ぶ期限切れ・今日・これからの予定" />
+
+  <h2>開いた瞬間に、今日やることが目の前に</h2>
+  <p class="center">⇧⌘A を押すとそのまま予定一覧——期限切れ・今日・これからを日付ごとに表示。どれもその場で完了・再スケジュール、新規追加はそのまま入力するだけ。</p>
 
   <h2>自然に入力。あとは自動で。</h2>
   <p class="center">時間範囲か所要時間があれば予定。場所や会議の語があれば予定。それ以外はリマインダー。</p>
@@ -72,18 +76,16 @@
     <tr><td class="in">牛乳を買う ~買い物 #週末 !!</td><td>→ 高優先度のリマインダー（リスト・タグつき）</td></tr>
     <tr><td class="in">毎週月曜 午前10時 定例</td><td>→ 毎週くり返すリマインダー</td></tr>
   </table>
+  <img class="shot" src="shots/hero-ja.png" alt="入力した一行を、場所つきのカレンダー予定に変換する UpNext" />
 
   <div class="two">
     <img class="shot" style="margin:8px 0" src="shots/add-reminder-ja.png" alt="リマインダーを追加" />
     <img class="shot" style="margin:8px 0" src="shots/add-event-ja.png" alt="予定を追加" />
   </div>
 
-  <h2>開いた瞬間に「次にやること」が見える</h2>
-  <p class="center">⇧⌘A を押すと、期限切れ・今日・これからの予定が日付ごとに表示。そのまま新規追加、その場で完了・再スケジュールも。</p>
-  <img class="shot" src="shots/upcoming-ja.png" alt="クイック追加パネルの予定一覧" />
-
   <h2>特長</h2>
   <div class="grid">
+    <div class="card"><h3>📅 開いて一覧</h3><p>パネルを開くと期限切れ・今日・これからの予定が日付ごとに。入力する前に「次にやること」が見えます。</p></div>
     <div class="card"><h3>⌨️ グローバルショートカット</h3><p>Spotlight 風のパネルがどのアプリの上にも出ます（ショートカットは変更可）。終わると元のアプリにフォーカスを戻します。</p></div>
     <div class="card"><h3>🧠 自然言語</h3><p>時刻・所要時間・範囲・繰り返し・事前アラーム・優先度・場所を、入力した言葉から解析します。</p></div>
     <div class="card"><h3>📍 かしこい判別</h3><p>住所つきの会議は「予定」だと判断し、場所を自動で取り出します。</p></div>
@@ -91,13 +93,12 @@
     <div class="card"><h3>🔎 今日 &amp; 検索</h3><p>「今日」一覧と、リマインダー・カレンダー横断検索（<span class="kbd">is:event due:week</span>）。その場で再スケジュール・完了。</p></div>
     <div class="card"><h3>↩ 取り消し &amp; 一括</h3><p>追加ミスは ⌘Z。リストを貼り付け、⌥↩ で各行を一括追加。</p></div>
     <div class="card"><h3>🔒 プライバシー重視</h3><p>すべてローカル。任意でオンデバイスの Apple Intelligence 補正も——データは外に出ません。</p></div>
-    <div class="card"><h3>🆓 無料・オープンソース</h3><p>MIT ライセンス。アカウント不要・追跡なし・サブスクなし。</p></div>
   </div>
 
   <img class="shot" src="shots/search-ja.png" alt="リマインダーとカレンダーを横断する検索" />
 
   <footer>
-    MIT ライセンスの無料・オープンソース · <a href="https://github.com/ekkkkki/QuickAdd">github.com/ekkkkki/QuickAdd</a><br>
+    MIT ライセンスの無料・オープンソース · <a href="https://github.com/ekkkkki/UpNext">github.com/ekkkkki/UpNext</a><br>
     Apple とは無関係です。リマインダー・カレンダーは Apple Inc. の商標です。
   </footer>
 </div>

@@ -1,5 +1,5 @@
 import SwiftUI
-import QuickAddCore
+import UpNextCore
 
 struct AddView: View {
     @ObservedObject var model: PanelModel

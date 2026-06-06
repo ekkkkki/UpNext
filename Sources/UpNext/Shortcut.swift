@@ -11,7 +11,7 @@ struct Shortcut: Codable, Equatable {
 /// Persistence + change notification for the global hot key.
 enum ShortcutStore {
     static let key = "globalHotKey"
-    static let changed = Notification.Name("QuickAddShortcutChanged")
+    static let changed = Notification.Name("UpNextShortcutChanged")
 
     static let defaultShortcut = Shortcut(
         keyCode: UInt32(kVK_ANSI_A),

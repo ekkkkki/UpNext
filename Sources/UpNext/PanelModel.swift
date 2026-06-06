@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 import EventKit
-import QuickAddCore
+import UpNextCore
 
 /// Observable state driving the quick-add / search panel.
 @MainActor

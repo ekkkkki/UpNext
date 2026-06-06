@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import QuickAddCore
+import UpNextCore
 
 /// Colors and formatting shared across the UI.
 enum Theme {

@@ -45,8 +45,8 @@ struct RootPanelView: View {
             Image(systemName: "lock.shield").foregroundStyle(.orange)
             VStack(alignment: .leading, spacing: 1) {
                 Text(L("Access needed", "需要授权", "アクセスが必要")).font(.system(size: 12, weight: .semibold))
-                Text(L("Allow Reminders & Calendar so QuickAdd can save items.",
-                       "允许访问提醒事项和日历，QuickAdd 才能保存。",
+                Text(L("Allow Reminders & Calendar so UpNext can save items.",
+                       "允许访问提醒事项和日历，UpNext 才能保存。",
                        "リマインダーとカレンダーへのアクセスを許可してください。"))
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             }

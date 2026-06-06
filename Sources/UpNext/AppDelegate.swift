@@ -89,7 +89,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func setupStatusItem() {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = item.button {
-            button.image = NSImage(systemSymbolName: "calendar.badge.plus", accessibilityDescription: "QuickAdd")
+            button.image = NSImage(systemSymbolName: "calendar.badge.plus", accessibilityDescription: "UpNext")
             button.image?.isTemplate = true
         }
 
@@ -118,12 +118,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let settings = NSMenuItem(title: L("Settings…", "设置…", "設定…"), action: #selector(openSettings), keyEquivalent: ",")
         settings.target = self
         menu.addItem(settings)
-        let about = NSMenuItem(title: L("About QuickAdd", "关于 QuickAdd", "QuickAdd について"), action: #selector(showAbout), keyEquivalent: "")
+        let about = NSMenuItem(title: L("About UpNext", "关于 UpNext", "UpNext について"), action: #selector(showAbout), keyEquivalent: "")
         about.target = self
         menu.addItem(about)
         menu.addItem(.separator())
 
-        let quit = NSMenuItem(title: L("Quit QuickAdd", "退出 QuickAdd", "QuickAdd を終了"), action: #selector(quit), keyEquivalent: "q")
+        let quit = NSMenuItem(title: L("Quit UpNext", "退出 UpNext", "UpNext を終了"), action: #selector(quit), keyEquivalent: "q")
         quit.target = self
         menu.addItem(quit)
 
@@ -169,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func showAbout() {
         NSApp.activate(ignoringOtherApps: true)
         NSApp.orderFrontStandardAboutPanel(options: [
-            .applicationName: "QuickAdd",
+            .applicationName: "UpNext",
             .credits: NSAttributedString(
                 string: "Quickly capture reminders and calendar events with natural language.\nPress ⇧⌘A from anywhere.",
                 attributes: [.font: NSFont.systemFont(ofSize: 11)]

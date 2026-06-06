@@ -1,6 +1,14 @@
 # Changelog
 
-All notable changes to QuickAdd. Dates are when the work landed on `main`.
+All notable changes to UpNext. Dates are when the work landed on `main`.
+
+## v1.5.0 — 2026-06-06
+
+- **QuickAdd is now UpNext.** The panel grew from an add-only box into a glance-and-add command
+  center, so the name caught up. New bundle identifier (`com.ericzhao.upnext`) — macOS will ask
+  for Reminders and Calendar access once more on first launch.
+- ⇧⌘A now **opens to your agenda** (overdue / today / next days) as the default view; the landing
+  pages and docs relaunched around *“See what's next. Add what's new.”*
 
 ## v1.4.0 — 2026-06-05
 

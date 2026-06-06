@@ -16,7 +16,7 @@ struct OnboardingView: View {
                 .foregroundStyle(LinearGradient(colors: [.accentColor, .purple], startPoint: .top, endPoint: .bottom))
                 .padding(.top, 6)
 
-            Text(L("Welcome to QuickAdd", "欢迎使用 QuickAdd", "QuickAdd へようこそ"))
+            Text(L("Welcome to UpNext", "欢迎使用 UpNext", "UpNext へようこそ"))
                 .font(.title2.bold())
             Text(L("Capture reminders and calendar events from anywhere — just type the way you think.",
                    "在任何地方记下提醒和日历事件——像说话一样打字即可。",
@@ -88,7 +88,7 @@ final class OnboardingWindowController {
         }
         let hosting = NSHostingController(rootView: root)
         let w = NSWindow(contentViewController: hosting)
-        w.title = "QuickAdd"
+        w.title = "UpNext"
         w.styleMask = [.titled, .closable]
         w.isReleasedWhenClosed = false
         window = w

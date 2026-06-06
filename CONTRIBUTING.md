@@ -1,34 +1,34 @@
-# Contributing to QuickAdd
+# Contributing to UpNext
 
-Thanks for your interest! QuickAdd is a small, focused macOS app and contributions are welcome.
+Thanks for your interest! UpNext is a small, focused macOS app and contributions are welcome.
 
 ## Project layout
 
-- `Sources/QuickAddCore` — pure parsing/logic, **no UI or EventKit**. Fully unit-tested and the
+- `Sources/UpNextCore` — pure parsing/logic, **no UI or EventKit**. Fully unit-tested and the
   best place to start. Most language/parsing improvements live here.
-- `Sources/QuickAdd` — the macOS app (menu-bar agent, panel, EventKit, optional LLM).
-- `Sources/QuickAddTests` — a self-contained test runner (plain Swift assertions, no XCTest —
+- `Sources/UpNext` — the macOS app (menu-bar agent, panel, EventKit, optional LLM).
+- `Sources/UpNextTests` — a self-contained test runner (plain Swift assertions, no XCTest —
   the Command Line Tools toolchain doesn't ship XCTest/swift-testing).
 
 ## Building & testing
 
 ```bash
-swift run QuickAddTests            # unit tests (parsing, dates, recurrence, location, search, perf)
+swift run UpNextTests            # unit tests (parsing, dates, recurrence, location, search, perf)
 swift build -c release             # requires macOS 26 SDK (FoundationModels is weak-linked)
 ./package.sh                       # build the .app + .dmg
-.build/debug/QuickAdd --selftest-ui        # headless UI/layout checks
-QuickAdd --selftest-eventkit               # end-to-end against real Reminders/Calendar
+.build/debug/UpNext --selftest-ui        # headless UI/layout checks
+UpNext --selftest-eventkit               # end-to-end against real Reminders/Calendar
 ```
 
-Run the tests before opening a PR — `swift run QuickAddTests` must stay green (it includes a
+Run the tests before opening a PR — `swift run UpNextTests` must stay green (it includes a
 performance regression guard).
 
 ## Adding a parsing rule
 
-1. Add the rule in `QuickAddCore` (e.g. `DateTimeParser`, `LocationDetector`, `InputParser`).
-2. Add deterministic cases to `Sources/QuickAddTests/main.swift` (the runner injects a fixed
+1. Add the rule in `UpNextCore` (e.g. `DateTimeParser`, `LocationDetector`, `InputParser`).
+2. Add deterministic cases to `Sources/UpNextTests/main.swift` (the runner injects a fixed
    `now`, so date math is reproducible).
-3. `swift run QuickAddTests`.
+3. `swift run UpNextTests`.
 
 ## Style
 

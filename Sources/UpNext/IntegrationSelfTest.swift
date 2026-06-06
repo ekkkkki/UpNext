@@ -1,17 +1,17 @@
 import Foundation
 import EventKit
-import QuickAddCore
+import UpNextCore
 
 /// End-to-end EventKit check: parse → create a reminder + an event → search for
 /// them → delete them. Requires Reminders/Calendar access. Run with
-/// `QuickAdd --selftest-eventkit`. Exit codes: 0 pass, 1 fail, 2 skipped (no access).
+/// `UpNext --selftest-eventkit`. Exit codes: 0 pass, 1 fail, 2 skipped (no access).
 @MainActor
 enum IntegrationSelfTest {
-    static let marker = "QuickAdd self-test ✓"
+    static let marker = "UpNext self-test ✓"
 
     /// Result file so the outcome is readable when the app is launched via `open`
     /// (which detaches stdout). Read this after running `open --args --selftest-eventkit`.
-    static let resultPath = "/tmp/quickadd_selftest_result.txt"
+    static let resultPath = "/tmp/upnext_selftest_result.txt"
 
     static func run(eventKit: EventKitService) async -> Int {
         var buffer = ""

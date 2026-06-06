@@ -1,5 +1,5 @@
 import Foundation
-import QuickAddCore
+import UpNextCore
 
 // Deterministic reference clock: Friday 2026-06-05 09:00 in a fixed zone.
 let tz = TimeZone(identifier: "Asia/Shanghai")!

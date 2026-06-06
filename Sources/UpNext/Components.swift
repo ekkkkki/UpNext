@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import QuickAddCore
+import UpNextCore
 
 /// Native vibrancy background for the floating panel.
 struct VisualEffectBackground: NSViewRepresentable {
