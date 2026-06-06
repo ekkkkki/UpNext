@@ -2,6 +2,13 @@
 
 All notable changes to QuickAdd. Dates are when the work landed on `main`.
 
+## v1.4.0 — 2026-06-05
+
+- **Glance + add.** Opening ⇧⌘A now shows an **Upcoming** list — overdue + today + the
+  next ~7 days, grouped by day (Overdue / Today / Tomorrow / weekday) — so you see what's
+  next before typing. Complete, delete, or reschedule items right from the panel; the list
+  refreshes after you add. Fully localized (en/zh/ja).
+
 ## v1.3.0 — 2026-06-05
 
 - **Multi-weekday recurrence**: `每周一三五` / `毎週月水金` / `every mon wed fri` →
