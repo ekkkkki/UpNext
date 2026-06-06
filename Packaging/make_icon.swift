@@ -40,23 +40,26 @@ func render(_ px: Int) -> Data? {
     cg.saveGState()
     cg.addPath(path); cg.clip()
     let colors = [
-        CGColor(red: 0.36, green: 0.55, blue: 0.97, alpha: 1.0),
-        CGColor(red: 0.60, green: 0.35, blue: 0.91, alpha: 1.0)
+        CGColor(red: 0.486, green: 0.424, blue: 1.0, alpha: 1.0),   // #7C6CFF (brand --accent)
+        CGColor(red: 0.714, green: 0.361, blue: 1.0, alpha: 1.0)    // #B65CFF (brand --accent2)
     ] as CFArray
     if let grad = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors, locations: [0, 1]) {
         cg.drawLinearGradient(grad, start: CGPoint(x: 0, y: s), end: CGPoint(x: s, y: 0), options: [])
     }
     cg.restoreGState()
 
-    // White rounded "+".
-    let thickness = s * 0.12
-    let length = s * 0.46
-    cg.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
-    let horizontal = CGRect(x: (s - length) / 2, y: (s - thickness) / 2, width: length, height: thickness)
-    let vertical = CGRect(x: (s - thickness) / 2, y: (s - length) / 2, width: thickness, height: length)
-    cg.addPath(CGPath(roundedRect: horizontal, cornerWidth: thickness / 2, cornerHeight: thickness / 2, transform: nil))
-    cg.addPath(CGPath(roundedRect: vertical, cornerWidth: thickness / 2, cornerHeight: thickness / 2, transform: nil))
-    cg.fillPath()
+    // White rounded chevron "›" — Nextor: what's next.
+    let lw = s * 0.118
+    cg.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 1))
+    cg.setLineWidth(lw)
+    cg.setLineCap(.round)
+    cg.setLineJoin(.round)
+    let cx = s * 0.455, cy = s * 0.5
+    let armW = s * 0.145, armH = s * 0.215
+    cg.move(to: CGPoint(x: cx - armW, y: cy + armH))
+    cg.addLine(to: CGPoint(x: cx + armW, y: cy))
+    cg.addLine(to: CGPoint(x: cx - armW, y: cy - armH))
+    cg.strokePath()
 
     NSGraphicsContext.restoreGraphicsState()
     return rep.representation(using: .png, properties: [:])
