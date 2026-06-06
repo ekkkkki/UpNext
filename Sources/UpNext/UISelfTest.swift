@@ -28,16 +28,13 @@ enum UISelfTest {
         scroll.documentView = tv
 
         tv.string = "single line"
-        scroll.recompute()
-        let h1 = scroll.intrinsicContentSize.height
+        let h1 = scroll.idealHeight()
 
         tv.string = "line one\nline two\nline three"
-        scroll.recompute()
-        let h3 = scroll.intrinsicContentSize.height
+        let h3 = scroll.idealHeight()
 
         tv.string = String(repeating: "とても長い住所のテキストです ", count: 14)
-        scroll.recompute()
-        let hWrap = scroll.intrinsicContentSize.height
+        let hWrap = scroll.idealHeight()
 
         print("    field heights — 1-line=\(Int(h1)) 3-line=\(Int(h3)) wrapped=\(Int(hWrap))")
         check(h1 >= 22 && h1 <= 42, "single line is ~one row")

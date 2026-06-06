@@ -11,7 +11,7 @@ final class PanelModel: ObservableObject {
     @Published var mode: Mode = .add
 
     // Add
-    @Published var input: String = "" { didSet { reparse() } }
+    @Published var input: String = "" { didSet { scheduleReparse() } }
     @Published private(set) var parsed = ParsedItem()
     @Published var toast: ToastMessage?
     @Published var errorText: String?
@@ -40,6 +40,7 @@ final class PanelModel: ObservableObject {
 
     private var searchTask: Task<Void, Never>?
     private var refineTask: Task<Void, Never>?
+    private var reparseTask: Task<Void, Never>?
 
     struct ToastMessage: Identifiable, Equatable {
         let id = UUID()
@@ -53,8 +54,25 @@ final class PanelModel: ObservableObject {
 
     // MARK: Add flow
 
-    private func reparse() {
+    /// Debounce parsing off the keystroke path. Parsing publishes `parsed`, which re-renders
+    /// the preview — doing that on every keystroke (worst of all on a long paste) is what made
+    /// typing feel laggy. An empty field updates instantly so the agenda shows right away.
+    private func scheduleReparse() {
         errorText = nil
+        reparseTask?.cancel()
+        let snapshot = input
+        if snapshot.isEmpty {
+            parsed = ParsedItem()
+            return
+        }
+        reparseTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 60_000_000) // ~60ms
+            guard let self, !Task.isCancelled, self.input == snapshot else { return }
+            self.reparse()
+        }
+    }
+
+    private func reparse() {
         let base = InputParser(now: Date()).parse(input)
         parsed = base
         scheduleRefine(base)
@@ -97,10 +115,15 @@ final class PanelModel: ObservableObject {
     }
 
     func submit() {
-        guard canSubmit else { return }
+        // Parse the current text synchronously: the live parse is debounced, so typing and
+        // immediately pressing ↩ must not depend on whether the debounce has fired yet.
+        reparseTask?.cancel()
+        let item = InputParser(now: Date()).parse(input)
+        parsed = item
+        guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let original = input
         do {
-            let outcome = try eventKit.create(from: parsed, defaultListName: defaultReminderList)
+            let outcome = try eventKit.create(from: item, defaultListName: defaultReminderList)
             let symbol = outcome.kind == .event ? "calendar" : "checklist"
             var text = outcome.kind == .event
                 ? L("Event added", "已添加日历事件", "予定を追加しました")

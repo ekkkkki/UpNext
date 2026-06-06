@@ -4,6 +4,12 @@ import AppKit
 /// A multi-line text field that grows with its content (then scrolls), wrapping long
 /// lines instead of clipping. Return submits; ⇧/⌥Return inserts a newline; Esc cancels.
 /// Backed by NSTextView so paste, undo, and IME all work natively.
+///
+/// Sizing contract (important): `sizeThatFits` *measures and returns* the height — it must
+/// never call `invalidateIntrinsicContentSize()` (or anything that does). Doing so makes
+/// SwiftUI re-measure, which calls `sizeThatFits` again → an unbounded layout loop that
+/// froze the app on large / multi-line input. The scroll view therefore exposes pure
+/// measurement helpers with no side effects.
 struct GrowingTextView: NSViewRepresentable {
     @Binding var text: String
     var placeholder: String
@@ -36,6 +42,7 @@ struct GrowingTextView: NSViewRepresentable {
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.string = text
+        context.coordinator.lastSyncedText = text
 
         let scroll = GrowingScrollView()
         scroll.minHeight = minHeight
@@ -54,45 +61,54 @@ struct GrowingTextView: NSViewRepresentable {
     func updateNSView(_ scroll: GrowingScrollView, context: Context) {
         context.coordinator.parent = self
         guard let tv = context.coordinator.textView else { return }
-        // While an IME composition is in progress the text view holds "marked text" — the
-        // underlined, not-yet-committed 中文 / 日本語 characters. Re-setting tv.string or moving
-        // the selection mid-composition cancels the session, so the half-typed characters
-        // vanish until the next space/return. Leave the text view untouched until it commits.
-        if !tv.hasMarkedText() {
-            if tv.string != text { tv.string = text; scroll.recompute() }
-            if context.coordinator.lastFocusTick != focusTick {
-                context.coordinator.lastFocusTick = focusTick
-                DispatchQueue.main.async {
-                    guard let win = tv.window, !tv.hasMarkedText() else { return }
-                    win.makeFirstResponder(tv)
-                    tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
-                }
+        tv.placeholderString = placeholder
+        scroll.minHeight = minHeight
+        scroll.maxHeight = maxHeight
+
+        // Push *external / programmatic* text changes only — e.g. cleared after a submit, or
+        // restored by undo. Never echo the user's own keystrokes back into the view (that
+        // round-trip caused churn), and never touch the view mid-IME-composition: re-setting
+        // the string or selection cancels the composition, so half-typed 中文/日本語 vanishes
+        // until the next space/return.
+        if !tv.hasMarkedText(), text != context.coordinator.lastSyncedText, tv.string != text {
+            tv.string = text
+            context.coordinator.lastSyncedText = text
+        }
+
+        if context.coordinator.lastFocusTick != focusTick {
+            context.coordinator.lastFocusTick = focusTick
+            DispatchQueue.main.async {
+                guard let win = tv.window, !tv.hasMarkedText() else { return }
+                win.makeFirstResponder(tv)
+                tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
             }
         }
         applyHighlights(to: tv)
     }
 
-    /// Report the content-driven height so SwiftUI doesn't stretch the field to fill
-    /// the panel (which left a big empty gap).
+    /// Report the content-driven height so SwiftUI lays the field out at the right size.
+    /// Pure measurement: it must NOT invalidate intrinsic size (that loops — see the type doc).
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: GrowingScrollView, context: Context) -> CGSize? {
         let width = proposal.replacingUnspecifiedDimensions(by: CGSize(width: 480, height: minHeight)).width
-        if let tv = context.coordinator.textView, abs(tv.frame.width - width) > 0.5 {
-            tv.frame.size.width = width
+        guard let tv = context.coordinator.textView else {
+            return CGSize(width: width, height: minHeight)
         }
-        nsView.recompute()
-        return CGSize(width: width, height: nsView.intrinsicContentSize.height)
+        // Lay the text out at the width SwiftUI is proposing so wrapping is correct.
+        if abs(tv.frame.width - width) > 0.5 { tv.frame.size.width = width }
+        let used = nsView.usedContentHeight()
+        let needsScroller = used > maxHeight + 1
+        if nsView.hasVerticalScroller != needsScroller { nsView.hasVerticalScroller = needsScroller }
+        return CGSize(width: width, height: min(max(used, minHeight), maxHeight))
     }
 
-    /// Tint recognized token ranges. Skips while an IME composition is active so we
-    /// don't disturb marked text.
+    /// Tint recognized token ranges. Skips while an IME composition is active (so we don't
+    /// disturb marked text) and for long pastes (invisible work that hurts responsiveness).
     private func applyHighlights(to tv: NSTextView) {
         guard !tv.hasMarkedText(), let storage = tv.textStorage else { return }
         let full = NSRange(location: 0, length: storage.length)
         storage.beginEditing()
         storage.addAttribute(.foregroundColor, value: NSColor.labelColor, range: full)
         storage.addAttribute(.font, value: font, range: full)
-        // Skip per-token tinting for long pastes — it's invisible work on a big string and
-        // keeps typing/pasting responsive.
         if storage.length <= 400 {
             for hl in highlights where hl.range.location != NSNotFound && NSMaxRange(hl.range) <= storage.length {
                 storage.addAttribute(.foregroundColor, value: hl.color, range: hl.range)
@@ -106,13 +122,22 @@ struct GrowingTextView: NSViewRepresentable {
         weak var textView: QATextView?
         weak var scrollView: GrowingScrollView?
         var lastFocusTick = Int.min
+        /// The text we last wrote into / read out of the view, to distinguish the user's own
+        /// edits (echo — ignore) from external changes that must be pushed in.
+        var lastSyncedText = "\u{1}"
 
         init(_ parent: GrowingTextView) { self.parent = parent }
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView else { return }
-            parent.text = tv.string
-            scrollView?.recompute()
+            // While composing (marked text present), don't propagate to SwiftUI — the
+            // partial 拼音/かな isn't real input yet, and the re-render round-trip is what
+            // used to disturb the composition. The committed text arrives here on commit.
+            guard !tv.hasMarkedText() else { return }
+            if tv.string != lastSyncedText {
+                lastSyncedText = tv.string
+                parent.text = tv.string
+            }
         }
 
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
@@ -160,38 +185,22 @@ final class QATextView: NSTextView {
     }
 }
 
-/// Scroll view whose intrinsic height tracks the text content (clamped), so SwiftUI
-/// lays it out at the right height and the panel grows downward instead of clipping.
+/// Scroll view for the growing field. Exposes pure measurement helpers (no intrinsic-size
+/// override, no recompute-in-layout) so the SwiftUI sizing path can't form a feedback loop.
 final class GrowingScrollView: NSScrollView {
     var minHeight: CGFloat = 28
     var maxHeight: CGFloat = 168
-    private var contentHeight: CGFloat = 28
 
-    override var intrinsicContentSize: NSSize {
-        NSSize(width: NSView.noIntrinsicMetric, height: contentHeight)
-    }
-
-    override func layout() {
-        // NB: do *not* call recompute() here. recompute() can invalidate the intrinsic
-        // content size, which schedules another layout pass — recomputing on every layout
-        // creates a feedback loop that hangs the UI on large / multi-line input. Height is
-        // recomputed on text changes and whenever SwiftUI measures us (sizeThatFits).
-        super.layout()
-    }
-
-    func recompute() {
+    /// Laid-out content height (unclamped). Pure: lays text out and measures, nothing else.
+    func usedContentHeight() -> CGFloat {
         guard let tv = documentView as? NSTextView,
-              let lm = tv.layoutManager, let tc = tv.textContainer else { return }
+              let lm = tv.layoutManager, let tc = tv.textContainer else { return minHeight }
         lm.ensureLayout(for: tc)
-        let used = lm.usedRect(for: tc).height + tv.textContainerInset.height * 2
-        let clamped = min(max(used, minHeight), maxHeight)
-        if abs(clamped - contentHeight) > 0.5 {
-            contentHeight = clamped
-            invalidateIntrinsicContentSize()
-        }
-        // Only toggle the scroller when it actually changes — flipping it every pass churns
-        // the layout (it changes the text width, which feeds back into height).
-        let needsScroller = used > maxHeight + 1
-        if hasVerticalScroller != needsScroller { hasVerticalScroller = needsScroller }
+        return lm.usedRect(for: tc).height + tv.textContainerInset.height * 2
+    }
+
+    /// Content height clamped to [minHeight, maxHeight] — what the field should render at.
+    func idealHeight() -> CGFloat {
+        min(max(usedContentHeight(), minHeight), maxHeight)
     }
 }
