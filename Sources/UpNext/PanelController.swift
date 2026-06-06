@@ -54,6 +54,10 @@ final class PanelController {
 
     var isVisible: Bool { panel?.isVisible ?? false }
 
+    /// Test hook: the live panel's content view, so the live self-test can find the real
+    /// NSTextView inside the running SwiftUI tree.
+    var liveContentView: NSView? { panel?.contentView }
+
     func toggle(mode: PanelModel.Mode = .add) {
         // Only treat the hotkey as "dismiss" when the panel is genuinely up *and* focused.
         // If it's hidden — or visible but not key (a focus/activation race) — (re)show and

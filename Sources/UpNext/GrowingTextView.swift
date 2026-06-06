@@ -48,7 +48,11 @@ struct GrowingTextView: NSViewRepresentable {
         scroll.minHeight = minHeight
         scroll.maxHeight = maxHeight
         scroll.drawsBackground = false
-        scroll.hasVerticalScroller = false
+        // Overlay scroller: invisible until the content actually overflows maxHeight, so we never
+        // need to toggle it (toggling mutates layout — see sizeThatFits).
+        scroll.hasVerticalScroller = true
+        scroll.scrollerStyle = .overlay
+        scroll.autohidesScrollers = true
         scroll.hasHorizontalScroller = false
         scroll.verticalScrollElasticity = .none
         scroll.documentView = textView
@@ -83,18 +87,17 @@ struct GrowingTextView: NSViewRepresentable {
     }
 
     /// Report the content-driven height so SwiftUI lays the field out at the right size.
-    /// Pure measurement: it must NOT invalidate intrinsic size (that loops — see the type doc).
+    ///
+    /// This MUST be a pure measurement — it must not mutate the view hierarchy (frame, scroller,
+    /// text storage, …). Mutating anything here re-triggers AppKit/SwiftUI layout, and in a
+    /// *presented* window that becomes an every-display-cycle feedback loop that pegs the main
+    /// thread at 100% (the paste freeze). The text view's width is already managed by the scroll
+    /// view's autoresizing, so we only need to compute and return the height.
     func sizeThatFits(_ proposal: ProposedViewSize, nsView: GrowingScrollView, context: Context) -> CGSize? {
         let width = proposal.replacingUnspecifiedDimensions(by: CGSize(width: 480, height: minHeight)).width
-        guard let tv = context.coordinator.textView else {
-            return CGSize(width: width, height: minHeight)
-        }
-        // Lay the text out at the width SwiftUI is proposing so wrapping is correct.
-        if abs(tv.frame.width - width) > 0.5 { tv.frame.size.width = width }
-        let used = nsView.usedContentHeight()
-        let needsScroller = used > maxHeight + 1
-        if nsView.hasVerticalScroller != needsScroller { nsView.hasVerticalScroller = needsScroller }
-        return CGSize(width: width, height: min(max(used, minHeight), maxHeight))
+        let h = context.coordinator.measuredHeight(text: text, width: width, font: font,
+                                                    minHeight: minHeight, maxHeight: maxHeight)
+        return CGSize(width: width, height: h)
     }
 
     /// Tint recognized token ranges. Skips while an IME composition is active (so we don't
@@ -121,8 +124,37 @@ struct GrowingTextView: NSViewRepresentable {
         /// The text we last wrote into / read out of the view, to distinguish the user's own
         /// edits (echo — ignore) from external changes that must be pushed in.
         var lastSyncedText = "\u{1}"
+        /// Offscreen text view used purely for height measurement, so sizeThatFits never has to
+        /// touch (and thus re-trigger layout on) the live field. TextKit caches its layout, so
+        /// repeated measurements — including SwiftUI's probing — are cheap.
+        private let measurer: NSTextView = {
+            let tv = NSTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 100))
+            tv.textContainerInset = NSSize(width: 0, height: 3)
+            tv.textContainer?.lineFragmentPadding = 0
+            tv.textContainer?.widthTracksTextView = false
+            return tv
+        }()
+        private var measureCache: (text: String, width: CGFloat, height: CGFloat)?
 
         init(_ parent: GrowingTextView) { self.parent = parent }
+
+        /// Clamped content height for `text` at `width`. Pure w.r.t. the live view (it measures on
+        /// an offscreen text view) and memoized, so SwiftUI's repeated size probes are O(1).
+        func measuredHeight(text: String, width: CGFloat, font: NSFont,
+                            minHeight: CGFloat, maxHeight: CGFloat) -> CGFloat {
+            let w = max(width, 1)
+            if let c = measureCache, c.text == text, abs(c.width - w) < 0.5 { return c.height }
+            measurer.font = font
+            if measurer.string != text { measurer.string = text }
+            measurer.textContainer?.size = NSSize(width: w, height: .greatestFiniteMagnitude)
+            var h = minHeight
+            if let lm = measurer.layoutManager, let tc = measurer.textContainer {
+                lm.ensureLayout(for: tc)
+                h = min(max(lm.usedRect(for: tc).height + measurer.textContainerInset.height * 2, minHeight), maxHeight)
+            }
+            measureCache = (text, w, h)
+            return h
+        }
 
         func textDidChange(_ notification: Notification) {
             guard let tv = textView else { return }
@@ -200,16 +232,11 @@ final class GrowingScrollView: NSScrollView {
     var minHeight: CGFloat = 28
     var maxHeight: CGFloat = 168
 
-    /// Laid-out content height (unclamped). Pure: lays text out and measures, nothing else.
-    func usedContentHeight() -> CGFloat {
+    /// Clamped content height for the current document — used by the UI self-test.
+    func idealHeight() -> CGFloat {
         guard let tv = documentView as? NSTextView,
               let lm = tv.layoutManager, let tc = tv.textContainer else { return minHeight }
         lm.ensureLayout(for: tc)
-        return lm.usedRect(for: tc).height + tv.textContainerInset.height * 2
-    }
-
-    /// Content height clamped to [minHeight, maxHeight] — what the field should render at.
-    func idealHeight() -> CGFloat {
-        min(max(usedContentHeight(), minHeight), maxHeight)
+        return min(max(lm.usedRect(for: tc).height + tv.textContainerInset.height * 2, minHeight), maxHeight)
     }
 }

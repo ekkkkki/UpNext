@@ -37,6 +37,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             exit(Int32(code))
         }
 
+        // End-to-end check against the *real* panel (open it, paste, type, drive an IME
+        // composition). The closest automated stand-in for hands-on testing.
+        if CommandLine.arguments.contains("--selftest-live-panel") {
+            let code = LivePanelSelfTest.run(panel: panelController, model: model)
+            exit(Int32(code))
+        }
+
         // End-to-end EventKit check (creates + deletes real items). Needs access.
         if CommandLine.arguments.contains("--selftest-eventkit") {
             Task { @MainActor in
