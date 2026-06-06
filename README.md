@@ -10,7 +10,7 @@
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange?logo=swift)
 ![Languages](https://img.shields.io/badge/中文%20·%20日本語%20·%20English-✓-success)
 
-<img src="docs/shots/hero.png" width="760" alt="UpNext turning a pasted Japanese address into a calendar event with the location filled in">
+<img src="docs/shots/upcoming-en.png" width="760" alt="UpNext opens to your agenda — overdue, today and the next few days, grouped by day">
 
 </div>
 
@@ -51,9 +51,9 @@ Calendar. No app-switching, no forms.
 
 ## Screenshots
 
-Open ⇧⌘A and your day is right there — overdue, today, and the next few days, grouped:
+Type the way you think — UpNext decides reminder vs. event and pulls out the time, place and recurrence:
 
-<img src="docs/shots/upcoming-en.png" width="720" alt="Upcoming agenda inside the quick-add panel">
+<img src="docs/shots/hero.png" width="720" alt="UpNext turning a typed line into a calendar event with the location filled in">
 
 | Add a reminder | Add an event |
 |---|---|
