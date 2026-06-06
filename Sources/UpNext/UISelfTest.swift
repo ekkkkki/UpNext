@@ -120,6 +120,35 @@ enum UISelfTest {
         coord.textDidChange(Notification(name: NSText.didChangeNotification, object: imeTV))
         check(box.s == "现在怎么样", "committed text propagates to the model")
 
+        // 5) The real freeze scenario: paste into an *already-open* panel, then type. A layout
+        //    feedback loop would hang here (layoutIfNeeded never settles); we assert it's prompt.
+        do {
+            let ek2 = EventKitService()
+            let m = PanelModel(eventKit: ek2)
+            let hc = NSHostingController(rootView: RootPanelView(model: m, eventKit: ek2))
+            hc.sizingOptions = [.preferredContentSize]
+            let win = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 640, height: 200),
+                               styleMask: [.borderless], backing: .buffered, defer: false)
+            win.contentViewController = hc
+            win.layoutIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+
+            let tPaste = Date()
+            m.input = blobInput                       // same path a paste drives
+            win.layoutIfNeeded()
+            RunLoop.current.run(until: Date().addingTimeInterval(0.2))
+            let pasteMs = Date().timeIntervalSince(tPaste) * 1000
+
+            let tType = Date()
+            for s in ["あ", "い", "う", "え", "お"] { m.input += s; win.layoutIfNeeded() }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.05))
+            let typeMs = Date().timeIntervalSince(tType) * 1000
+            win.close()
+            print("    live paste settle: \(Int(pasteMs)) ms · 5 keystrokes: \(Int(typeMs)) ms")
+            check(pasteMs < 1500, "paste into an open panel settles promptly (no freeze loop)")
+            check(typeMs < 600, "typing after a big paste stays responsive")
+        }
+
         print(failures == 0 ? "✓ UI layout self-test passed" : "✗ UI self-test had \(failures) failure(s)")
         return failures == 0 ? 0 : 1
     }
