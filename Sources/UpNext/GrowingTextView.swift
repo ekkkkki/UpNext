@@ -54,13 +54,19 @@ struct GrowingTextView: NSViewRepresentable {
     func updateNSView(_ scroll: GrowingScrollView, context: Context) {
         context.coordinator.parent = self
         guard let tv = context.coordinator.textView else { return }
-        if tv.string != text { tv.string = text; scroll.recompute() }
-        if context.coordinator.lastFocusTick != focusTick {
-            context.coordinator.lastFocusTick = focusTick
-            DispatchQueue.main.async {
-                guard let win = tv.window else { return }
-                win.makeFirstResponder(tv)
-                tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+        // While an IME composition is in progress the text view holds "marked text" — the
+        // underlined, not-yet-committed 中文 / 日本語 characters. Re-setting tv.string or moving
+        // the selection mid-composition cancels the session, so the half-typed characters
+        // vanish until the next space/return. Leave the text view untouched until it commits.
+        if !tv.hasMarkedText() {
+            if tv.string != text { tv.string = text; scroll.recompute() }
+            if context.coordinator.lastFocusTick != focusTick {
+                context.coordinator.lastFocusTick = focusTick
+                DispatchQueue.main.async {
+                    guard let win = tv.window, !tv.hasMarkedText() else { return }
+                    win.makeFirstResponder(tv)
+                    tv.setSelectedRange(NSRange(location: (tv.string as NSString).length, length: 0))
+                }
             }
         }
         applyHighlights(to: tv)
