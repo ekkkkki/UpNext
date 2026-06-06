@@ -4,7 +4,7 @@
 
 ## Testing
 
-- [ ] `swift run UpNextTests` is green (incl. the perf guard)
+- [ ] `swift run NextorTests` is green (incl. the perf guard)
 - [ ] Added/updated test cases for parsing changes
 - [ ] Tried it in the app (⇧⌘A) if it touches the UI
 

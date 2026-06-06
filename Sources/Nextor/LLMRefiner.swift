@@ -1,12 +1,12 @@
 import Foundation
-import UpNextCore
+import NextorCore
 #if canImport(FoundationModels)
 import FoundationModels
 #endif
 
 /// Optional on-device LLM refinement (Apple's Foundation Models, macOS 26+).
 ///
-/// The rule-based parser in UpNextCore is always the baseline. When Apple
+/// The rule-based parser in NextorCore is always the baseline. When Apple
 /// Intelligence is enabled *and* the user opts in, this nudges the result for fuzzy
 /// cases the rules miss (e.g. "明天3点 麦当劳" → event at McDonald's). It never
 /// blocks the UI: the live preview shows the heuristic result immediately and this

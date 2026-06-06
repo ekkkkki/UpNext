@@ -2,14 +2,14 @@ import AppKit
 
 /// End-to-end check against the **real** panel — the actual `PanelController` / `FloatingPanel`
 /// / `show()` path and the live SwiftUI view tree — not a stand-in harness. Run with
-/// `UpNext --selftest-live-panel`. Exit 0 pass / 1 fail.
+/// `Nextor --selftest-live-panel`. Exit 0 pass / 1 fail.
 ///
 /// Why this exists: synthetic keystrokes are blocked without an Accessibility grant, so this is
 /// the closest automated stand-in for "paste the blob and type some 中文/日本語 into the panel".
 /// A surviving layout feedback loop would hang the runloop spins below (a watchdog catches it).
 @MainActor
 enum LivePanelSelfTest {
-    static let logPath = "/tmp/upnext_livetest.txt"
+    static let logPath = "/tmp/nextor_livetest.txt"
 
     static func run(panel: PanelController, model: PanelModel) -> Int {
         // Log incrementally to a file so results survive even when launched via `open` (which

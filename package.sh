@@ -1,11 +1,11 @@
 #!/bin/bash
-# Builds UpNext, assembles a signed .app bundle, and produces a distributable DMG.
+# Builds Nextor, assembles a signed .app bundle, and produces a distributable DMG.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-APP_NAME="UpNext"
+APP_NAME="Nextor"
 BUILD_DIR="$ROOT/.build/release"
 DIST="$ROOT/dist"
 APP="$DIST/$APP_NAME.app"
@@ -35,7 +35,7 @@ fi
 rm -rf "$ICONSET"
 
 echo "==> Code signing (ad-hoc)"
-codesign --force --entitlements "$ROOT/Packaging/UpNext.entitlements" --sign - "$APP"
+codesign --force --entitlements "$ROOT/Packaging/Nextor.entitlements" --sign - "$APP"
 codesign --verify --verbose=2 "$APP" 2>&1 | sed 's/^/    /' || true
 
 echo "==> Creating DMG"
@@ -53,5 +53,5 @@ echo "==> Done"
 echo "    App: $APP"
 echo "    DMG: $DMG"
 echo ""
-echo "Install: drag UpNext.app to /Applications, then launch it."
+echo "Install: drag Nextor.app to /Applications, then launch it."
 echo "First launch will ask for Reminders & Calendar access. Press ⇧⌘A to capture."

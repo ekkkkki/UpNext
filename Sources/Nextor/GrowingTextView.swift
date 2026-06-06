@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import UpNextCore
+import NextorCore
 
 /// A multi-line text field that grows with its content (then scrolls), wrapping long
 /// lines instead of clipping. Return submits; ⇧/⌥Return inserts a newline; Esc cancels.

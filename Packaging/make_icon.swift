@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 
-// Renders UpNext's app icon (gradient squircle + white "+") into an .iconset
+// Renders Nextor's app icon (gradient squircle + white "+") into an .iconset
 // directory. Pure CoreGraphics so it runs under Command Line Tools with no
 // NSApplication. Usage: swift make_icon.swift <iconset-dir>
 

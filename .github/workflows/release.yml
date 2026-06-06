@@ -25,13 +25,13 @@ jobs:
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: UpNext-dmg
-          path: dist/UpNext.dmg
+          name: Nextor-dmg
+          path: dist/Nextor.dmg
 
       - name: Create release
         if: ${{ inputs.tag != '' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.tag }}
-          files: dist/UpNext.dmg
+          files: dist/Nextor.dmg
           generate_release_notes: true

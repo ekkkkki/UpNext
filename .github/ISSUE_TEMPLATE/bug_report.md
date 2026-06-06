@@ -19,5 +19,5 @@ e.g. a Calendar event tomorrow 15:00–15:30 titled "开会".
 
 **Environment**
 - macOS version:
-- UpNext version (menu bar ▸ Settings ▸ About):
+- Nextor version (menu bar ▸ Settings ▸ About):
 - Language of the input (中文 / 日本語 / English / mixed):

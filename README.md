@@ -1,21 +1,21 @@
 <div align="center">
 
-# ⌘ UpNext
+# ⌘ Nextor
 
 ### See what's next, then add what's new — one keystroke, natural language, bilingual.
 
-[![CI](https://github.com/ekkkkki/UpNext/actions/workflows/ci.yml/badge.svg)](https://github.com/ekkkkki/UpNext/actions/workflows/ci.yml)
+[![CI](https://github.com/ekkkkki/Nextor/actions/workflows/ci.yml/badge.svg)](https://github.com/ekkkkki/Nextor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Platform](https://img.shields.io/badge/macOS-14%2B-black?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange?logo=swift)
 ![Languages](https://img.shields.io/badge/中文%20·%20日本語%20·%20English-✓-success)
 
-<img src="docs/shots/upcoming-en.png" width="760" alt="UpNext opens to your agenda — overdue, today and the next few days, grouped by day">
+<img src="docs/shots/upcoming-en.png" width="760" alt="Nextor opens to your agenda — overdue, today and the next few days, grouped by day">
 
 </div>
 
 Press **⇧⌘A** anywhere, type the way you think — `明天下午3点 开会 30min`, `Team sync tomorrow 2-3pm ~Work`,
-or just paste a whole address — and UpNext decides whether it's a **Reminder** or a **Calendar event**,
+or just paste a whole address — and Nextor decides whether it's a **Reminder** or a **Calendar event**,
 pulls out the **time, location, priority, list, tags, and recurrence**, and saves it to Apple Reminders /
 Calendar. No app-switching, no forms.
 
@@ -51,9 +51,9 @@ Calendar. No app-switching, no forms.
 
 ## Screenshots
 
-Type the way you think — UpNext decides reminder vs. event and pulls out the time, place and recurrence:
+Type the way you think — Nextor decides reminder vs. event and pulls out the time, place and recurrence:
 
-<img src="docs/shots/hero.png" width="720" alt="UpNext turning a typed line into a calendar event with the location filled in">
+<img src="docs/shots/hero.png" width="720" alt="Nextor turning a typed line into a calendar event with the location filled in">
 
 | Add a reminder | Add an event |
 |---|---|
@@ -77,29 +77,29 @@ Requires the Swift toolchain (Xcode or Command Line Tools).
 ./package.sh
 ```
 
-This builds a release binary, assembles `dist/UpNext.app`, embeds an icon, ad-hoc code-signs it,
-and produces `dist/UpNext.dmg`. Then:
+This builds a release binary, assembles `dist/Nextor.app`, embeds an icon, ad-hoc code-signs it,
+and produces `dist/Nextor.dmg`. Then:
 
 ```bash
-open dist            # drag UpNext.app to /Applications
+open dist            # drag Nextor.app to /Applications
 ```
 
 Building locally avoids Gatekeeper's quarantine, so the app launches normally.
 
 ### Option B — from the DMG
 
-Open `UpNext.dmg`, drag **UpNext** to **Applications**. Because the app is ad-hoc signed
+Open `Nextor.dmg`, drag **Nextor** to **Applications**. Because the app is ad-hoc signed
 (not notarized), the first launch needs **right-click ▸ Open** to confirm.
 
 ---
 
 ## Permissions
 
-On first launch UpNext shows a short welcome and asks for **Reminders** and **Calendar** access.
+On first launch Nextor shows a short welcome and asks for **Reminders** and **Calendar** access.
 Both are needed to save items. You can re-check or re-grant under **Settings… ▸ Access** (in the
 menu-bar menu), or in **System Settings ▸ Privacy & Security**.
 
-<img src="docs/shots/onboarding.png" width="420" alt="UpNext first-run welcome">
+<img src="docs/shots/onboarding.png" width="420" alt="Nextor first-run welcome">
 
 The quick-add hot key is **⇧⌘A** by default and can be changed in Settings.
 
@@ -180,14 +180,14 @@ Command Line Tools toolchain ships neither XCTest nor swift-testing on the SPM p
 self-contained runner:
 
 ```bash
-swift run UpNextTests          # unit tests: parsing, dates, recurrence, location, search query (118 checks)
-.build/debug/UpNext --smoke-test          # launch / run-loop boot check
-.build/debug/UpNext --selftest-ui         # headless UI/layout test (catches input clipping/growth)
-UpNext --selftest-eventkit                # end-to-end: create → search → delete real items + location round-trip
+swift run NextorTests          # unit tests: parsing, dates, recurrence, location, search query (118 checks)
+.build/debug/Nextor --smoke-test          # launch / run-loop boot check
+.build/debug/Nextor --selftest-ui         # headless UI/layout test (catches input clipping/growth)
+Nextor --selftest-eventkit                # end-to-end: create → search → delete real items + location round-trip
 ```
 
 `--selftest-eventkit` needs Reminders/Calendar access; it creates two clearly-labeled
-`UpNext self-test ✓` items, verifies search finds them, then deletes them.
+`Nextor self-test ✓` items, verifies search finds them, then deletes them.
 
 ---
 
@@ -195,14 +195,14 @@ UpNext --selftest-eventkit                # end-to-end: create → search → de
 
 ```
 Sources/
-  UpNextCore/        Pure logic, no UI/EventKit — fully unit-tested
+  NextorCore/        Pure logic, no UI/EventKit — fully unit-tested
     Models.swift           ParsedItem, Priority, RecurrenceRule, Highlight
     InputParser.swift      Orchestrates: url → notes → priority → list → tags → recurrence → date → location
     DateTimeParser.swift   Bilingual date/time/duration/range engine (injectable clock)
     LocationDetector.swift Address/venue cues + meeting keywords (JP/CN/EN), event classification
     ChineseNumber.swift    一二三…十 → Int
     SearchQuery.swift      The search mini-language
-  UpNext/            The macOS app
+  Nextor/            The macOS app
     main.swift             AppKit bootstrap
     AppDelegate.swift      Menu-bar agent, wiring, self-test modes (--selftest-ui / -eventkit)
     HotKeyManager.swift    Carbon RegisterEventHotKey (⇧⌘A, no Accessibility needed)
@@ -213,7 +213,7 @@ Sources/
     PanelModel.swift       Observable state for the panel
     *View.swift            SwiftUI: add, search, settings, components
     UISelfTest.swift       Headless layout assertions
-  UpNextTests/       Self-contained assertion runner (no XCTest dependency)
+  NextorTests/       Self-contained assertion runner (no XCTest dependency)
 Packaging/             Info.plist, entitlements, icon generator
 package.sh             Build → .app → sign → .dmg
 ```
@@ -228,7 +228,7 @@ the tests are deterministic.
 
 - **Runs on macOS 14+.** Building from source needs the **macOS 26 SDK** (the optional Apple
   Intelligence integration is weak-linked), so run `swift build` / `./package.sh` on macOS 26.
-  CI builds and tests only `UpNextCore`, which has no such requirement.
+  CI builds and tests only `NextorCore`, which has no such requirement.
 - Ad-hoc signed for local/personal distribution. For sharing widely you'd add a Developer ID
   signature + notarization in `package.sh`.
 - The quick-add hot key defaults to ⇧⌘A and is customizable in **Settings ▸ General**.

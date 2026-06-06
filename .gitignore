@@ -16,4 +16,4 @@ dist/
 *.swp
 
 # Local self-test scratch
-/tmp/upnext_selftest_result.txt
+/tmp/nextor_selftest_result.txt

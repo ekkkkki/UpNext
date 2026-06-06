@@ -1,5 +1,5 @@
 import SwiftUI
-import UpNextCore
+import NextorCore
 
 struct SearchView: View {
     @ObservedObject var model: PanelModel

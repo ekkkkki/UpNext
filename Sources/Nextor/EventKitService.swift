@@ -1,7 +1,7 @@
 import Foundation
 import EventKit
 import AppKit
-import UpNextCore
+import NextorCore
 
 /// A unified, UI-friendly row for search results across Reminders and Calendar.
 struct SearchHit: Identifiable {

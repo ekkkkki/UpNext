@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// Headless UI/layout checks — the kind that would have caught the multi-line
-/// clipping bug. Run with `UpNext --selftest-ui`. Exit 0 pass / 1 fail.
+/// clipping bug. Run with `Nextor --selftest-ui`. Exit 0 pass / 1 fail.
 @MainActor
 enum UISelfTest {
     static func run() -> Int {

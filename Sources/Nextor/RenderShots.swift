@@ -1,9 +1,9 @@
 import AppKit
 import SwiftUI
-import UpNextCore
+import NextorCore
 
 /// Renders polished screenshots of the panel headlessly (no manual capture needed),
-/// for the README and landing page. Run: `UpNext --render-shots <dir>`.
+/// for the README and landing page. Run: `Nextor --render-shots <dir>`.
 @MainActor
 enum RenderShots {
     static func run(outDir: String) -> Int {

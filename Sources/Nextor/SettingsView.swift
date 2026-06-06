@@ -1,7 +1,7 @@
 import SwiftUI
 import AppKit
 import ServiceManagement
-import UpNextCore
+import NextorCore
 
 struct SettingsView: View {
     @ObservedObject var eventKit: EventKitService
@@ -91,7 +91,7 @@ struct SettingsView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("UpNext \(appVersion)").font(.headline)
+                    Text("Nextor \(appVersion)").font(.headline)
                     Text("Capture reminders and calendar events from anywhere with natural language.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -138,7 +138,7 @@ final class SettingsWindowController {
         if window == nil {
             let hosting = NSHostingController(rootView: SettingsView(eventKit: eventKit))
             let w = NSWindow(contentViewController: hosting)
-            w.title = "UpNext Settings"
+            w.title = "Nextor Settings"
             w.styleMask = [.titled, .closable, .miniaturizable]
             w.isReleasedWhenClosed = false
             window = w
