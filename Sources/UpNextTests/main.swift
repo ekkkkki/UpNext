@@ -506,6 +506,41 @@ do {
     h.ok(!q.matchesText(title: "unrelated", notes: nil), "no match")
 }
 
+h.group("Document paste")
+do {
+    // A pasted multi-line blob → one event: name = first line, date/time + location pulled
+    // from the whole text, the rest kept as notes. (Regression for the freeze + giant title.)
+    let blob = """
+    起業家＆事業会社・CVC集合！ 6月ピッチ＆交流会 by JAFCO
+
+    起業家＆事業会社・CVC集合！ 6月ピッチ＆交流会 by JAFCO
+    2026/06/18(木) 12:00 - 13:00
+    申し込み
+    開催日時
+    2026/06/18(木) 12:00 - 13:00
+
+    イベント概要
+    スタートアップ起業家とCVCが集う交流会を開催します。
+
+    ■ 開催場所
+    ・東京都港区虎ノ門1-23-1 虎ノ門ヒルズ森タワー24階
+    """
+    let p = parse(blob)
+    h.eq(p.kind, .event, "blob -> event")
+    h.eq(p.title, "起業家＆事業会社・CVC集合！ 6月ピッチ＆交流会 by JAFCO", "name = first line")
+    h.eq(p.startDate, ymd(2026, 6, 18, 12, 0), "start 12:00")
+    h.eq(p.endDate, ymd(2026, 6, 18, 13, 0), "end 13:00")
+    h.ok((p.location ?? "").contains("虎ノ門"), "location extracted")
+    h.ok(p.title.count < 60, "title is the name, not the whole blob")
+    h.ok((p.notes ?? "").contains("イベント概要"), "body kept as notes")
+    h.ok(!(p.notes ?? "x").isEmpty, "notes non-empty")
+}
+do {
+    // A short multi-line list is NOT a document — stays on the normal path.
+    let p = parse("买牛奶\n买鸡蛋")
+    h.ok(p.notes == nil || !(p.notes ?? "").contains("\n"), "short 2-line input not treated as a document")
+}
+
 h.group("Performance")
 do {
     let samples = [

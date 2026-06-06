@@ -67,6 +67,29 @@ enum UISelfTest {
         check(single > 0, "panel measures a height")
         check(multi > single, "panel grows for multi-line input (was clipped before)")
 
+        // 3) A big multi-line paste must lay out promptly and stay clamped. Regression for
+        //    the freeze: a layout feedback loop would blow far past this budget (or hang).
+        let blobInput = """
+        起業家＆事業会社・CVC集合！ 6月ピッチ＆交流会 by JAFCO
+        2026/06/18(木) 12:00 - 13:00
+        イベント概要
+        スタートアップ起業家とCVCが集う交流会を開催します。
+        本イベントは、大企業とスタートアップの情報交換やシナジー創出を目的とした場です。
+        当日は参加起業家の中から希望者によるピッチセッションも実施予定です。
+        ネットワーキングを通じて、新たな連携のきっかけを見つけてください。
+        ■ 開催場所
+        ・東京都港区虎ノ門1-23-1 虎ノ門ヒルズ森タワー24階
+        　ジャフコ グループ株式会社 本社オフィス内 Jラウンジ
+        さらに本文を足して十分な長さにします。
+        もう一行。
+        """
+        let t0 = Date()
+        let blobH = panelHeight(blobInput)
+        let blobMs = Date().timeIntervalSince(t0) * 1000
+        print("    big-paste render: \(Int(blobMs)) ms, height=\(Int(blobH))")
+        check(blobMs < 1500, "big multi-line paste lays out promptly (no freeze)")
+        check(blobH > single && blobH < 1200, "big paste height is bounded (field clamps + scrolls)")
+
         print(failures == 0 ? "✓ UI layout self-test passed" : "✗ UI self-test had \(failures) failure(s)")
         return failures == 0 ? 0 : 1
     }

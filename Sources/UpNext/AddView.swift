@@ -212,6 +212,9 @@ struct AddView: View {
             if let url = parsed.url, let host = url.host() {
                 Chip(text: host, systemImage: "link", color: .teal)
             }
+            if let notes = parsed.notes, !notes.isEmpty {
+                Chip(text: L("Notes", "备注", "メモ"), systemImage: "note.text", color: .gray)
+            }
             Spacer()
         }
     }

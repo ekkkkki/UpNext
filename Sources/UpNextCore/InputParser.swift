@@ -16,7 +16,47 @@ public struct InputParser {
         self.calendar = cal
     }
 
+    /// A pasted multi-line blob (an event page, an invitation, a description) is not a
+    /// quick-add line. Treat the first line as the event name, pull the date/time and
+    /// location out of the *whole* text, and keep the remaining body as notes/details.
+    /// Returns nil for ordinary one-line or short input so the normal pipeline runs.
+    private func parseDocumentIfApplicable(_ raw: String) -> ParsedItem? {
+        let lines = raw
+            .split(omittingEmptySubsequences: true, whereSeparator: { $0 == "\n" || $0 == "\r" })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        // Only genuinely document-like input: several lines and some heft.
+        guard lines.count >= 4, raw.count >= 120 else { return nil }
+
+        var item = ParsedItem()
+        let name = Self.cleanTitle(lines[0])
+        // Date / time over the whole text (first occurrence wins).
+        let dt = DateTimeParser.parse(raw, now: now, calendar: calendar)
+        item.startDate = dt.startDate
+        item.endDate = dt.endDate
+        item.hasTime = dt.hasTime
+        item.isAllDay = dt.isAllDay
+        // Location over the whole text.
+        if let det = LocationDetector.detect(in: raw) { item.location = det.text }
+        // Classify: a timed item that is a meeting or has a place is an event.
+        let isEvent = dt.isEvent || (item.hasTime && (item.location != nil || LocationDetector.containsMeetingKeyword(raw)))
+        item.kind = isEvent ? .event : .reminder
+        if isEvent, item.endDate == nil, item.hasTime, let s = item.startDate {
+            item.endDate = s.addingTimeInterval(Self.defaultEventDuration)
+        }
+        item.title = name.isEmpty ? (item.location ?? lines[0]) : name
+        // Notes = the rest of the body (everything but the name line), de-duplicated against
+        // a repeated title line (event pages often print the title twice).
+        let body = lines.dropFirst()
+            .filter { $0 != lines[0] }
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        item.notes = body.isEmpty ? nil : body
+        return item
+    }
+
     public func parse(_ rawInput: String) -> ParsedItem {
+        if let document = parseDocumentIfApplicable(rawInput) { return document }
         let normalized = Self.normalize(rawInput)
         let masked = NSMutableString(string: normalized)
         var item = ParsedItem()

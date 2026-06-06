@@ -85,8 +85,12 @@ struct GrowingTextView: NSViewRepresentable {
         storage.beginEditing()
         storage.addAttribute(.foregroundColor, value: NSColor.labelColor, range: full)
         storage.addAttribute(.font, value: font, range: full)
-        for hl in highlights where hl.range.location != NSNotFound && NSMaxRange(hl.range) <= storage.length {
-            storage.addAttribute(.foregroundColor, value: hl.color, range: hl.range)
+        // Skip per-token tinting for long pastes — it's invisible work on a big string and
+        // keeps typing/pasting responsive.
+        if storage.length <= 400 {
+            for hl in highlights where hl.range.location != NSNotFound && NSMaxRange(hl.range) <= storage.length {
+                storage.addAttribute(.foregroundColor, value: hl.color, range: hl.range)
+            }
         }
         storage.endEditing()
     }
@@ -162,8 +166,11 @@ final class GrowingScrollView: NSScrollView {
     }
 
     override func layout() {
+        // NB: do *not* call recompute() here. recompute() can invalidate the intrinsic
+        // content size, which schedules another layout pass — recomputing on every layout
+        // creates a feedback loop that hangs the UI on large / multi-line input. Height is
+        // recomputed on text changes and whenever SwiftUI measures us (sizeThatFits).
         super.layout()
-        recompute()
     }
 
     func recompute() {
@@ -176,6 +183,9 @@ final class GrowingScrollView: NSScrollView {
             contentHeight = clamped
             invalidateIntrinsicContentSize()
         }
-        hasVerticalScroller = used > maxHeight + 1
+        // Only toggle the scroller when it actually changes — flipping it every pass churns
+        // the layout (it changes the text width, which feeds back into height).
+        let needsScroller = used > maxHeight + 1
+        if hasVerticalScroller != needsScroller { hasVerticalScroller = needsScroller }
     }
 }
