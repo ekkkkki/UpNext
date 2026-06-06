@@ -55,7 +55,14 @@ final class PanelController {
     var isVisible: Bool { panel?.isVisible ?? false }
 
     func toggle(mode: PanelModel.Mode = .add) {
-        if isVisible { hide() } else { show(mode: mode) }
+        // Only treat the hotkey as "dismiss" when the panel is genuinely up *and* focused.
+        // If it's hidden — or visible but not key (a focus/activation race) — (re)show and
+        // focus it, so a single press always lands you in a focused panel rather than a no-op.
+        if let panel, panel.isVisible, panel.isKeyWindow {
+            hide()
+        } else {
+            show(mode: mode)
+        }
     }
 
     func show(mode: PanelModel.Mode = .add) {
@@ -65,6 +72,13 @@ final class PanelController {
 
         model.reset()
         model.mode = mode
+        // Always refetch the glance for the mode being shown. The panel's SwiftUI view is
+        // built once and reused across opens, so .onAppear won't fire again — without this,
+        // reopening the panel would keep showing a stale (often empty) agenda.
+        switch mode {
+        case .add: model.loadUpcoming()
+        case .search: model.loadAgenda()
+        }
 
         let front = NSWorkspace.shared.frontmostApplication
         if front?.bundleIdentifier != Bundle.main.bundleIdentifier { previousApp = front }
@@ -72,8 +86,17 @@ final class PanelController {
         position(panel)
         NSApp.activate(ignoringOtherApps: true)
         panel.makeKeyAndOrderFront(nil)
-        // Re-center once SwiftUI has laid out its intrinsic size.
-        DispatchQueue.main.async { [weak self] in self?.position(panel) }
+        model.requestFocus()
+        // Re-assert front + key + focus on the next runloop: activating a menu-bar
+        // accessory can race the first time, which previously made a hotkey press a no-op
+        // (you'd have to press ⇧⌘A twice). Also re-center once SwiftUI lays out its size.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let panel = self.panel else { return }
+            NSApp.activate(ignoringOtherApps: true)
+            panel.makeKeyAndOrderFront(nil)
+            self.position(panel)
+            self.model.requestFocus()
+        }
     }
 
     func hide() {

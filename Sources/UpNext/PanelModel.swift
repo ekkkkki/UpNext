@@ -30,6 +30,11 @@ final class PanelModel: ObservableObject {
 
     let eventKit: EventKitService
 
+    /// Bumped by the panel controller each time the panel is shown, so the input field
+    /// re-focuses even though the SwiftUI view is reused across opens.
+    @Published var focusNonce = 0
+    func requestFocus() { focusNonce &+= 1 }
+
     /// Hooks wired up by the panel controller.
     var onClose: (() -> Void)?
 

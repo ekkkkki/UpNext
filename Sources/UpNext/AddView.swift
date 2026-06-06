@@ -23,6 +23,7 @@ struct AddView: View {
         .onAppear { focusSoon(); model.loadUpcoming() }
         .onChange(of: model.mode) { if model.mode == .add { focusSoon(); model.loadUpcoming() } }
         .onChange(of: model.toast) { if model.toast != nil { focusSoon() } }
+        .onChange(of: model.focusNonce) { focusSoon() }
     }
 
     @ViewBuilder

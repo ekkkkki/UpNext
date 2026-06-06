@@ -132,17 +132,24 @@ final class EventKitService: ObservableObject {
 
         var cal = Calendar.current
         cal.timeZone = .current
+        let now = Date()
         if let due = item.startDate {
             let lead = item.leadTimeSeconds ?? 0
             if item.hasTime {
                 reminder.dueDateComponents = cal.dateComponents([.year, .month, .day, .hour, .minute], from: due)
-                reminder.addAlarm(EKAlarm(absoluteDate: due.addingTimeInterval(-lead)))
+                // Never schedule an alarm in the past — EventKit would fire it instantly.
+                let fire = due.addingTimeInterval(-lead)
+                if fire > now { reminder.addAlarm(EKAlarm(absoluteDate: fire)) }
             } else {
                 reminder.dueDateComponents = cal.dateComponents([.year, .month, .day], from: due)
-                // All-day reminders alert at the configured hour (default 9:00), minus any lead time.
+                // Date-only reminders alert at the configured hour (default 9:00), minus any
+                // lead time. If that moment has already passed (e.g. a "today" reminder added
+                // in the afternoon), skip the alarm so it doesn't fire the instant it's saved —
+                // the item still appears under Today, just without an immediate notification.
                 let hour = UserDefaults.standard.integer(forKey: Theme.userDefaultsAllDayHour)
                 if let alarmDate = cal.date(bySettingHour: hour, minute: 0, second: 0, of: due) {
-                    reminder.addAlarm(EKAlarm(absoluteDate: alarmDate.addingTimeInterval(-lead)))
+                    let fire = alarmDate.addingTimeInterval(-lead)
+                    if fire > now { reminder.addAlarm(EKAlarm(absoluteDate: fire)) }
                 }
             }
         }
