@@ -216,6 +216,39 @@ enum DateTimeParser {
         // --- Day ranges first: "周一到周三", "Mon-Wed", "3月5日到3月7日" ---
         if let dr = findDayRange(scanner, now: now, cal: cal) { return dr }
 
+        // --- Explicit calendar dates take priority over weekday words ---
+        // ("2026年7月3日 周五" → 3 July, not "this Friday"; "6/20" → the 20th).
+        // Absolute Chinese date: (YYYY年)?M月D日/号
+        let cnDate = re("(?:(\\d{4})\\s*年)?\\s*(\(cnNum){1,2})\\s*月\\s*(\(cnNum){1,3})\\s*[日号]")
+        if let m = scanner.firstFree(cnDate),
+           let month = number(group(m, 2, in: ns)), let dayN = number(group(m, 3, in: ns)) {
+            let year = number(group(m, 1, in: ns))
+            if let date = makeDate(year: year, month: month, day: dayN, now: now, cal: cal) {
+                scanner.consume(m.range)
+                return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
+            }
+        }
+        // Numeric ISO / slashed dates: YYYY-MM-DD, YYYY/MM/DD, M/D, M-D
+        let iso = re("\\b(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})\\b")
+        if let m = scanner.firstFree(iso),
+           let y = number(group(m, 1, in: ns)), let mo = number(group(m, 2, in: ns)), let d = number(group(m, 3, in: ns)),
+           let date = makeDate(year: y, month: mo, day: d, now: now, cal: cal) {
+            scanner.consume(m.range)
+            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
+        }
+        let mdSlash = re("\\b(\\d{1,2})/(\\d{1,2})\\b")
+        if let m = scanner.firstFree(mdSlash),
+           let mo = number(group(m, 1, in: ns)), let d = number(group(m, 2, in: ns)),
+           (1...12).contains(mo), (1...31).contains(d),
+           let date = makeDate(year: nil, month: mo, day: d, now: now, cal: cal) {
+            scanner.consume(m.range)
+            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
+        }
+        // English month-name dates: "Jan 5", "January 5th", "5 Jan", "March 5, 2026"
+        if let m = findEnglishMonthDate(scanner, now: now, cal: cal) {
+            return m
+        }
+
         // --- Relative day words (longest / most specific first) ---
         let evening = re("(今晚|今天晚上|明晚|明天晚上|tonight|tomorrow night)")
         if let m = scanner.firstFree(evening) {
@@ -351,39 +384,7 @@ enum DateTimeParser {
             }
         }
 
-        // Absolute Chinese date: (YYYY年)?M月D日/号
-        let cnDate = re("(?:(\\d{4})\\s*年)?\\s*(\(cnNum){1,2})\\s*月\\s*(\(cnNum){1,3})\\s*[日号]")
-        if let m = scanner.firstFree(cnDate),
-           let month = number(group(m, 2, in: ns)), let dayN = number(group(m, 3, in: ns)) {
-            let year = number(group(m, 1, in: ns))
-            if let date = makeDate(year: year, month: month, day: dayN, now: now, cal: cal) {
-                scanner.consume(m.range)
-                return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
-            }
-        }
-        // "M月" alone -> not specific enough; skip.
-
-        // Numeric ISO / slashed dates: YYYY-MM-DD, YYYY/MM/DD, M/D, M-D
-        let iso = re("\\b(\\d{4})[-/](\\d{1,2})[-/](\\d{1,2})\\b")
-        if let m = scanner.firstFree(iso),
-           let y = number(group(m, 1, in: ns)), let mo = number(group(m, 2, in: ns)), let d = number(group(m, 3, in: ns)),
-           let date = makeDate(year: y, month: mo, day: d, now: now, cal: cal) {
-            scanner.consume(m.range)
-            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
-        }
-        let mdSlash = re("\\b(\\d{1,2})/(\\d{1,2})\\b")
-        if let m = scanner.firstFree(mdSlash),
-           let mo = number(group(m, 1, in: ns)), let d = number(group(m, 2, in: ns)),
-           (1...12).contains(mo), (1...31).contains(d),
-           let date = makeDate(year: nil, month: mo, day: d, now: now, cal: cal) {
-            scanner.consume(m.range)
-            return DayMatch(date: date, endDate: nil, range: m.range, eveningHint: false)
-        }
-
-        // English month-name dates: "Jan 5", "January 5th", "5 Jan", "March 5, 2026"
-        if let m = findEnglishMonthDate(scanner, now: now, cal: cal) {
-            return m
-        }
+        // (Explicit calendar dates are handled near the top of findDay, before weekday words.)
 
         // "下周"/"下个月" without a weekday.
         let nextWeek = re("(下周|下星期|下个星期|next week|来週)")

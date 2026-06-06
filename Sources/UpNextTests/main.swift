@@ -541,6 +541,64 @@ do {
     h.ok(p.notes == nil || !(p.notes ?? "").contains("\n"), "short 2-line input not treated as a document")
 }
 
+h.group("Document corpus (dirty pastes)")
+do {
+    // Chinese event page — first line is a label, registration link, real time/place later.
+    let p = parse("""
+    活动详情
+    【免费】AI 产品经理线下沙龙 · 上海站
+    报名方式
+    点击链接 https://example.com/signup 报名
+    时间
+    2026年7月3日 周五 19:00-21:00
+    地点
+    上海市徐汇区漕溪北路88号 国研大厦12楼
+    主办
+    某某科技社区
+    """)
+    h.eq(p.kind, .event, "zh blob -> event (time range)")
+    h.eq(p.title, "【免费】AI 产品经理线下沙龙 · 上海站", "name skips the 活动详情 label line")
+    h.eq(p.startDate, ymd(2026, 7, 3, 19, 0), "start 19:00")
+    h.eq(p.endDate, ymd(2026, 7, 3, 21, 0), "end 21:00")
+    h.ok((p.location ?? "").contains("漕溪北路") || (p.location ?? "").contains("国研大厦"), "location extracted")
+    h.ok((p.notes ?? "").contains("报名") || (p.notes ?? "").contains("某某"), "body kept as notes")
+}
+do {
+    // English meetup — leading "Register" label, en time range, address.
+    let p = parse("""
+    Register
+    SwiftUI Meetup — June Edition
+    When
+    June 18 2026 6:30pm-8:30pm
+    Where
+    GitHub HQ, 88 Colin P Kelly Jr St, San Francisco
+    Hosted by SF iOS Developers
+    """)
+    h.eq(p.kind, .event, "en blob -> event")
+    h.eq(p.title, "SwiftUI Meetup — June Edition", "name skips the Register label")
+    h.ok(p.startDate != nil && p.hasTime, "has a start time")
+    h.ok((p.location ?? "").lowercased().contains("colin p kelly") || (p.location ?? "").contains("GitHub"), "location extracted")
+    h.ok(!(p.notes ?? "").isEmpty, "notes non-empty")
+}
+do {
+    // Dirty: lots of blank lines, a deadline time BEFORE the event time, repeated title.
+    let p = parse("""
+    社内勉強会のお知らせ
+
+    社内勉強会のお知らせ
+
+    申込締切 6/16 18:00
+    開催日時
+    2026年6月20日(土) 14:00〜16:00
+    場所
+    本社 5F 会議室A
+    """)
+    h.eq(p.kind, .event, "ja blob -> event")
+    h.eq(p.title, "社内勉強会のお知らせ", "name = first substantive line")
+    h.ok((p.notes ?? "").contains("申込締切") || (p.notes ?? "").contains("場所"), "body kept as notes")
+    h.ok(!(p.notes ?? "").contains("社内勉強会のお知らせ\n社内勉強会"), "duplicate title line dropped from notes")
+}
+
 h.group("Performance")
 do {
     let samples = [

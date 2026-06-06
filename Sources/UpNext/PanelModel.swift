@@ -62,6 +62,7 @@ final class PanelModel: ObservableObject {
         reparseTask?.cancel()
         let snapshot = input
         if snapshot.isEmpty {
+            pastedDoc = nil
             parsed = ParsedItem()
             return
         }
@@ -72,8 +73,35 @@ final class PanelModel: ObservableObject {
         }
     }
 
+    /// Set when a long multi-line blob is pasted: carries the document extraction (date /
+    /// location / notes) so the field can show just the short event name (fast) while the preview
+    /// and submit still use the full extraction.
+    private var pastedDoc: ParsedItem?
+
+    /// Capture a pasted document: show only the event name in the field (so the field never lays
+    /// out a huge string — the old paste freeze/lag), keeping date/location/notes for preview + submit.
+    func ingestDocumentPaste(_ raw: String) {
+        let doc = InputParser(now: Date()).parse(raw)
+        pastedDoc = doc
+        input = doc.title           // triggers a (debounced) reparse…
+        reparseTask?.cancel()
+        parsed = effectiveParsed()  // …but update the preview immediately
+    }
+
+    /// What the preview / submit should use: the pasted document (with the field as its editable
+    /// title) when one is active, else a fresh parse of the field.
+    private func effectiveParsed() -> ParsedItem {
+        if let doc = pastedDoc {
+            var merged = doc
+            let t = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !t.isEmpty { merged.title = t }
+            return merged
+        }
+        return InputParser(now: Date()).parse(input)
+    }
+
     private func reparse() {
-        let base = InputParser(now: Date()).parse(input)
+        let base = effectiveParsed()
         parsed = base
         scheduleRefine(base)
     }
@@ -118,7 +146,7 @@ final class PanelModel: ObservableObject {
         // Parse the current text synchronously: the live parse is debounced, so typing and
         // immediately pressing ↩ must not depend on whether the debounce has fired yet.
         reparseTask?.cancel()
-        let item = InputParser(now: Date()).parse(input)
+        let item = effectiveParsed()
         parsed = item
         guard !item.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         let original = input
@@ -139,6 +167,7 @@ final class PanelModel: ObservableObject {
             }
             toast = ToastMessage(text: text, symbol: symbol)
             input = ""
+            pastedDoc = nil
             parsed = ParsedItem()
             loadUpcoming()
         } catch {

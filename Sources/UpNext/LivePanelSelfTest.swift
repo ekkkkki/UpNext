@@ -43,15 +43,21 @@ enum LivePanelSelfTest {
         もう一行。
         """
 
-        // 1) Open the real panel via the real show() path — and time it (you open it constantly,
-        //    so open latency is central to whether the app "feels laggy").
-        let tShow = Date()
+        // 1) Open the real panel. Measure both a cold open and a pre-warmed open (what the user
+        //    actually gets, since the app pre-warms the panel shortly after launch).
+        let tCold = Date()
         panel.show(mode: .add)
-        let showMs = Date().timeIntervalSince(tShow) * 1000
-        spin(0.25)
-        log("    panel opened in \(Int(showMs)) ms")
+        let coldMs = Date().timeIntervalSince(tCold) * 1000
+        spin(0.2)
         check(panel.isVisible, "real panel opened")
-        check(showMs < 400, "panel opens promptly")
+        panel.hide(); spin(0.05)
+        panel.prewarm(); spin(0.05)
+        let tWarm = Date()
+        panel.show(mode: .add)
+        let warmMs = Date().timeIntervalSince(tWarm) * 1000
+        spin(0.15)
+        log("    panel open — cold \(Int(coldMs)) ms · prewarmed \(Int(warmMs)) ms")
+        check(warmMs < 60, "pre-warmed open is instant (<60ms)")
         // Reopen a few times — a regression here would show as climbing times.
         var reopenMax = 0.0
         for _ in 0..<3 {
@@ -64,12 +70,15 @@ enum LivePanelSelfTest {
 
         // 2) Paste the blob into the live panel. If sizeThatFits still looped, the runloop spin
         //    below would never settle and the external watchdog would kill us.
-        let t0 = Date()
-        model.input = blob
-        spin(0.45)
-        let pasteMs = Date().timeIntervalSince(t0) * 1000
-        log("    live paste settled in \(Int(pasteMs)) ms")
-        check(pasteMs < 1500, "paste into the live panel did not freeze")
+        model.ingestDocumentPaste(blob)   // the real paste path: collapse the field to the name
+        let tPaste = Date()
+        panel.liveContentView?.window?.layoutIfNeeded()
+        let pasteMs = Date().timeIntervalSince(tPaste) * 1000
+        spin(0.15)
+        log("    document paste layout: \(Int(pasteMs)) ms · field=\(model.input.count) chars")
+        check(pasteMs < 250, "document paste lays out instantly (field collapsed to the name)")
+        check(model.input.count < 80, "field shows just the event name, not the blob")
+        check(model.parsed.kind == .event, "paste still extracted as an event")
 
         // 3) Type into the (now large) live field — must stay responsive.
         model.input = ""

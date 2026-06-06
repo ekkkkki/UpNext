@@ -66,7 +66,8 @@ struct AddView: View {
                 },
                 onSubmit: { model.submit() },
                 onCancel: { model.onClose?() },
-                onSubmitAll: { model.submitAll() }
+                onSubmitAll: { model.submitAll() },
+                onDocumentPaste: { model.ingestDocumentPaste($0) }
             )
             .padding(.top, 1)
 

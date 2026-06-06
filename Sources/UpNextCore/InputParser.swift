@@ -16,21 +16,82 @@ public struct InputParser {
         self.calendar = cal
     }
 
-    /// A pasted multi-line blob (an event page, an invitation, a description) is not a
-    /// quick-add line. Treat the first line as the event name, pull the date/time and
-    /// location out of the *whole* text, and keep the remaining body as notes/details.
-    /// Returns nil for ordinary one-line or short input so the normal pipeline runs.
-    private func parseDocumentIfApplicable(_ raw: String) -> ParsedItem? {
-        let lines = raw
-            .split(omittingEmptySubsequences: true, whereSeparator: { $0 == "\n" || $0 == "\r" })
+    /// Is this input a pasted multi-line blob (an event page, invite, description) rather than a
+    /// quick-add line? Several non-empty lines and some heft. Shared by the parser and the paste
+    /// interceptor so they agree on when to switch to document extraction.
+    public static func looksLikeDocument(_ raw: String) -> Bool {
+        let lines = nonEmptyLines(raw)
+        if lines.count < 3 { return false }
+        if raw.count >= 120 { return true }
+        // Shorter, but laid out like an event page — a section label or a date-only line.
+        return lines.count >= 4 && (lines.contains(where: isLabelOnly) || lines.contains(where: isDateOnly))
+    }
+
+    static func nonEmptyLines(_ raw: String) -> [String] {
+        raw.split(omittingEmptySubsequences: true, whereSeparator: { $0 == "\n" || $0 == "\r" })
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
-        // Only genuinely document-like input: several lines and some heft.
-        guard lines.count >= 4, raw.count >= 120 else { return nil }
+    }
+
+    /// Common section labels on event pages (ja/zh/en). A line that is *only* one of these is
+    /// chrome, not the event name.
+    private static let labelWords: Set<String> = [
+        "申し込み", "申込", "申込み", "参加申込", "お申し込み", "開催日時", "日時", "開催場所", "会場", "場所",
+        "主催", "共催", "協賛", "後援", "イベント概要", "概要", "内容", "対象", "対象者", "定員", "参加費",
+        "料金", "費用", "詳細", "アクセス", "お問い合わせ", "登壇者", "タイムスケジュール", "スケジュール", "備考",
+        "日期", "时间", "地点", "地址", "主办", "主办方", "协办", "活动详情", "活动介绍", "活动内容", "报名",
+        "报名方式", "对象", "费用", "简介", "详情", "嘉宾", "议程", "时间地点",
+        "date", "time", "when", "where", "venue", "location", "host", "hosts", "organizer",
+        "organiser", "about", "details", "detail", "agenda", "register", "registration", "rsvp",
+        "price", "cost", "overview", "speakers", "speaker", "schedule", "info", "description"
+    ]
+
+    /// A line stripped of bullet/marker chrome and a trailing colon, lowercased.
+    private static func labelKey(_ line: String) -> String {
+        var s = line
+        while let f = s.unicodeScalars.first, "■◆●○◇▶▷•※*-–—・>　 ".unicodeScalars.contains(f) {
+            s.removeFirst()
+        }
+        s = s.trimmingCharacters(in: .whitespaces)
+        while let l = s.last, ":：。.".contains(l) { s.removeLast() }
+        return s.trimmingCharacters(in: .whitespaces).lowercased()
+    }
+
+    private static func isLabelOnly(_ line: String) -> Bool {
+        labelWords.contains(labelKey(line))
+    }
+
+    /// A line that is only a date / time (digits + date punctuation/kanji), e.g.
+    /// "2026/06/18(木) 12:00 - 13:00" — chrome for the title, not the name.
+    private static let dateOnlyAllowed = CharacterSet(charactersIn:
+        "0123456789０-９年月日時分秒:：~〜ー-－./　 ()（）曜月火水木金土日,、|曜日週am pm AM PM")
+        .union(.whitespaces)
+    private static func isDateOnly(_ line: String) -> Bool {
+        guard line.rangeOfCharacter(from: .decimalDigits) != nil else { return false }
+        return line.unicodeScalars.allSatisfy { dateOnlyAllowed.contains($0) }
+    }
+
+    /// Pick the line that is the event name: the first substantive line, skipping leading
+    /// labels, date-only lines, and bare URLs.
+    private static func documentTitleIndex(_ lines: [String]) -> Int {
+        for (i, l) in lines.enumerated() {
+            if isLabelOnly(l) || isDateOnly(l) || l.lowercased().hasPrefix("http") { continue }
+            return i
+        }
+        return 0
+    }
+
+    /// A pasted multi-line blob isn't a quick-add line. Use the first substantive line as the
+    /// event name, pull date/time and location from the *whole* text, and keep the rest as notes.
+    /// Returns nil for ordinary one-line or short input so the normal pipeline runs.
+    private func parseDocumentIfApplicable(_ raw: String) -> ParsedItem? {
+        guard Self.looksLikeDocument(raw) else { return nil }
+        let lines = Self.nonEmptyLines(raw)
 
         var item = ParsedItem()
-        let name = Self.cleanTitle(lines[0])
-        // Date / time over the whole text (first occurrence wins).
+        let titleIdx = Self.documentTitleIndex(lines)
+        let titleLine = lines[titleIdx]
+        // Date / time over the whole text (first real occurrence wins).
         let dt = DateTimeParser.parse(raw, now: now, calendar: calendar)
         item.startDate = dt.startDate
         item.endDate = dt.endDate
@@ -44,11 +105,12 @@ public struct InputParser {
         if isEvent, item.endDate == nil, item.hasTime, let s = item.startDate {
             item.endDate = s.addingTimeInterval(Self.defaultEventDuration)
         }
-        item.title = name.isEmpty ? (item.location ?? lines[0]) : name
-        // Notes = the rest of the body (everything but the name line), de-duplicated against
-        // a repeated title line (event pages often print the title twice).
-        let body = lines.dropFirst()
-            .filter { $0 != lines[0] }
+        let cleaned = Self.cleanTitle(titleLine)
+        item.title = cleaned.isEmpty ? (item.location ?? titleLine) : cleaned
+        // Notes = the rest of the body (every line but the chosen title and its duplicates).
+        let body = lines.enumerated()
+            .filter { $0.offset != titleIdx && $0.element != titleLine }
+            .map { $0.element }
             .joined(separator: "\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         item.notes = body.isEmpty ? nil : body

@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UpNextCore
 
 /// A multi-line text field that grows with its content (then scrolls), wrapping long
 /// lines instead of clipping. Return submits; ⇧/⌥Return inserts a newline; Esc cancels.
@@ -23,6 +24,9 @@ struct GrowingTextView: NSViewRepresentable {
     var onSubmit: () -> Void
     var onCancel: () -> Void
     var onSubmitAll: () -> Void = {}
+    /// Called when a long multi-line blob is pasted, instead of inserting it — lets the model
+    /// collapse the field to the event name and route the body to notes.
+    var onDocumentPaste: (String) -> Void = { _ in }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -42,6 +46,7 @@ struct GrowingTextView: NSViewRepresentable {
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.textContainer?.widthTracksTextView = true
         textView.string = text
+        textView.onDocumentPaste = onDocumentPaste
         context.coordinator.lastSyncedText = text
 
         let scroll = GrowingScrollView()
@@ -66,6 +71,7 @@ struct GrowingTextView: NSViewRepresentable {
         context.coordinator.parent = self
         guard let tv = context.coordinator.textView else { return }
         tv.placeholderString = placeholder
+        tv.onDocumentPaste = onDocumentPaste
         scroll.minHeight = minHeight
         scroll.maxHeight = maxHeight
 
@@ -217,6 +223,20 @@ struct GrowingTextView: NSViewRepresentable {
 /// NSTextView that paints a placeholder when empty.
 final class QATextView: NSTextView {
     var placeholderString: String = ""
+    var onDocumentPaste: ((String) -> Void)?
+
+    /// Intercept a paste of a long multi-line blob: hand it to the model (which collapses the
+    /// field to the event name and routes the body to notes) instead of inserting the whole
+    /// thing — that's what kept the field from having to lay out hundreds of characters.
+    override func paste(_ sender: Any?) {
+        if let handler = onDocumentPaste,
+           let s = NSPasteboard.general.string(forType: .string),
+           InputParser.looksLikeDocument(s) {
+            handler(s)
+            return
+        }
+        super.paste(sender)
+    }
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)

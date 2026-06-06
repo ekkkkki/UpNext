@@ -75,6 +75,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             onboardingController.show()
         }
 
+        // Pre-warm the quick-add panel off the launch path so the first ⇧⌘A is instant —
+        // SwiftUI's first render of the panel is the slow part of an otherwise-cold open.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.panelController.prewarm()
+        }
+
         // Keep the menu-bar today-count badge fresh.
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_500_000_000)

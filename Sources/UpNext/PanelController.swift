@@ -110,6 +110,15 @@ final class PanelController {
         }
     }
 
+    /// Build the panel and force its first (expensive) SwiftUI layout offscreen, so the first
+    /// ⇧⌘A press is as fast as later ones. Safe to call repeatedly.
+    func prewarm() {
+        if panel == nil { buildPanel() }
+        guard let panel else { return }
+        panel.setContentSize(NSSize(width: 640, height: 220))
+        panel.contentView?.layoutSubtreeIfNeeded()
+    }
+
     private func buildPanel() {
         let root = RootPanelView(model: model, eventKit: eventKit)
         let hosting = NSHostingController(rootView: root)
