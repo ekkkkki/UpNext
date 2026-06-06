@@ -66,14 +66,10 @@ struct GrowingTextView: NSViewRepresentable {
         scroll.maxHeight = maxHeight
 
         // Push *external / programmatic* text changes only — e.g. cleared after a submit, or
-        // restored by undo. Never echo the user's own keystrokes back into the view (that
-        // round-trip caused churn), and never touch the view mid-IME-composition: re-setting
-        // the string or selection cancels the composition, so half-typed 中文/日本語 vanishes
-        // until the next space/return.
-        if !tv.hasMarkedText(), text != context.coordinator.lastSyncedText, tv.string != text {
-            tv.string = text
-            context.coordinator.lastSyncedText = text
-        }
+        // restored by undo. syncExternalText ignores echoes of the user's own keystrokes and
+        // refuses to touch the view mid-IME-composition (re-setting the string or selection
+        // cancels the composition, so half-typed 中文/日本語 vanishes until the next commit).
+        context.coordinator.syncExternalText(text)
 
         if context.coordinator.lastFocusTick != focusTick {
             context.coordinator.lastFocusTick = focusTick
@@ -138,6 +134,19 @@ struct GrowingTextView: NSViewRepresentable {
                 lastSyncedText = tv.string
                 parent.text = tv.string
             }
+        }
+
+        /// Push an external/programmatic text change (clear-after-submit, undo-restore) into the
+        /// view. Returns true iff it actually wrote. Never echoes the user's own edits, and
+        /// never disturbs an active IME composition. Factored out so it's unit-testable.
+        @discardableResult
+        func syncExternalText(_ newText: String) -> Bool {
+            guard let tv = textView else { return false }
+            guard !tv.hasMarkedText() else { return false }       // composing → never touch
+            guard newText != lastSyncedText, tv.string != newText else { return false } // echo / no-op
+            tv.string = newText
+            lastSyncedText = newText
+            return true
         }
 
         func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {

@@ -87,6 +87,39 @@ enum UISelfTest {
         check(blobMs < 1500, "big multi-line paste lays out promptly (no freeze)")
         check(blobH > single && blobH < 1200, "big paste height is bounded (field clamps + scrolls)")
 
+        // 4) IME composition safety — regression for the vanishing 中文/日本語 bug. Drive a real
+        //    NSTextView through an actual composition and check the field is never disturbed and
+        //    the partial text isn't propagated until it commits.
+        final class Box { var s = "现在" }
+        let box = Box()
+        let gtv = GrowingTextView(text: Binding(get: { box.s }, set: { box.s = $0 }),
+                                  placeholder: "", focusTick: 0, onSubmit: {}, onCancel: {})
+        let coord = gtv.makeCoordinator()
+        let imeTV = QATextView(frame: NSRect(x: 0, y: 0, width: 300, height: 30))
+        coord.textView = imeTV
+        coord.parent = gtv
+        imeTV.string = "现在"
+        coord.lastSyncedText = "现在"
+        // Begin composing pinyin after "现在".
+        imeTV.setSelectedRange(NSRange(location: 2, length: 0))
+        imeTV.setMarkedText("zenme", selectedRange: NSRange(location: 5, length: 0),
+                            replacementRange: NSRange(location: NSNotFound, length: 0))
+        check(imeTV.hasMarkedText(), "composition is active (test setup)")
+        // A re-render carrying a different binding value must not touch the field mid-composition.
+        box.s = "现在你好"
+        let wrote = coord.syncExternalText("现在你好")
+        check(!wrote, "binding sync refused during composition")
+        check(imeTV.hasMarkedText() && (imeTV.string as NSString).contains("zenme"), "marked text survives")
+        // textDidChange while composing must not push the partial text up.
+        box.s = "现在"
+        coord.textDidChange(Notification(name: NSText.didChangeNotification, object: imeTV))
+        check(box.s == "现在", "partial composition not propagated to the model")
+        // After commit, the real text propagates.
+        imeTV.unmarkText()
+        imeTV.string = "现在怎么样"
+        coord.textDidChange(Notification(name: NSText.didChangeNotification, object: imeTV))
+        check(box.s == "现在怎么样", "committed text propagates to the model")
+
         print(failures == 0 ? "✓ UI layout self-test passed" : "✗ UI self-test had \(failures) failure(s)")
         return failures == 0 ? 0 : 1
     }
