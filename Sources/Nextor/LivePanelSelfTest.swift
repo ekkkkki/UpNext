@@ -1,4 +1,5 @@
 import AppKit
+import NextorCore
 
 /// End-to-end check against the **real** panel — the actual `PanelController` / `FloatingPanel`
 /// / `show()` path and the live SwiftUI view tree — not a stand-in harness. Run with
@@ -105,12 +106,45 @@ enum LivePanelSelfTest {
             check(false, "found the live NSTextView")
         }
 
+        // 5) A long agenda must render and stay typeable without jank — regression for the
+        //    per-row DateFormatter allocation that stuttered scrolling/typing with many items.
+        model.liveSearchEnabled = false           // keep our injected items from being refetched
+        model.setPreviewUpcoming(manyHits(60))
+        model.input = ""                           // show the upcoming list with 60 rows
+        let tList = Date()
+        panel.liveContentView?.window?.layoutIfNeeded()   // force the synchronous render now
+        let listMs = Date().timeIntervalSince(tList) * 1000
+        spin(0.15)
+        log("    long agenda (60 items) layout: \(Int(listMs)) ms")
+        check(listMs < 400, "long agenda renders without jank")
+        let tType2 = Date()
+        for s in ["a", "b", "c", "d", "e"] { model.input += s; spin(0.02) }
+        let type2Ms = Date().timeIntervalSince(tType2) * 1000
+        log("    5 keystrokes with 60 items: \(Int(type2Ms)) ms")
+        check(type2Ms < 800, "typing stays responsive with many items")
+        model.liveSearchEnabled = true
+
         panel.hide()
         spin(0.1)
         log(failures == 0 ? "✓ live panel self-test passed" : "✗ live panel self-test had \(failures) failure(s)")
         log("DONE \(failures == 0 ? "PASS" : "FAIL(\(failures))")")
         try? fh?.close()
         return failures == 0 ? 0 : 1
+    }
+
+    private static func manyHits(_ n: Int) -> [SearchHit] {
+        let cal = Calendar.current
+        let base = cal.startOfDay(for: Date())
+        return (0..<n).map { i in
+            let day = cal.date(byAdding: .day, value: (i % 9) - 1, to: base) ?? base
+            let date = day.addingTimeInterval(Double(9 + (i % 8)) * 3600)
+            return SearchHit(id: "row\(i)", title: "Task number \(i) — a fairly long row title here",
+                             notes: nil, kind: (i % 3 == 0) ? .event : .reminder,
+                             date: date, endDate: nil, isAllDay: (i % 4 == 0), isCompleted: false,
+                             priority: .none, calendarName: "List \(i % 3)", calendarColor: .systemBlue,
+                             location: (i % 5 == 0) ? "東京都港区虎ノ門1-23-1 森タワー24階" : nil,
+                             reminder: nil, event: nil)
+        }
     }
 
     private static func firstTextView(in view: NSView?) -> QATextView? {

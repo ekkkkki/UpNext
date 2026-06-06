@@ -23,6 +23,9 @@ final class PanelModel: ObservableObject {
     @Published var selectedIndex = 0
     /// Today/overdue glance shown when search opens with no query.
     @Published private(set) var agenda: [SearchHit] = []
+    /// True once the agenda has been fetched at least once — so the empty/filters hint only
+    /// shows when there's genuinely nothing today, never as a flash before the load lands.
+    @Published private(set) var agendaLoaded = false
     /// Overdue + today + next-days list shown in the add panel when the input is empty.
     @Published private(set) var upcoming: [SearchHit] = []
     /// Disabled during offscreen screenshot rendering so injected results aren't clobbered.
@@ -298,6 +301,7 @@ final class PanelModel: ObservableObject {
             guard let self else { return }
             let items = await self.eventKit.agenda()
             self.agenda = items
+            self.agendaLoaded = true
         }
     }
 

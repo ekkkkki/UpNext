@@ -38,7 +38,13 @@ struct SearchView: View {
     @ViewBuilder
     private var resultsArea: some View {
         if model.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-            if model.agenda.isEmpty { emptyHint } else { agendaList }
+            if !model.agenda.isEmpty {
+                agendaList
+            } else if model.agendaLoaded {
+                emptyHint                              // genuinely nothing today → show filter help
+            } else {
+                Color.clear.frame(height: 72)          // agenda still loading → no filter-hint flash
+            }
         } else if model.results.isEmpty && !model.isSearching {
             HStack {
                 Spacer()

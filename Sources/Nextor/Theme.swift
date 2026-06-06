@@ -47,6 +47,21 @@ enum Theme {
 
 /// Human-friendly date/time formatting for previews and result rows.
 enum DateFormatting {
+    /// Cached, reused DateFormatters keyed by (locale, format). Creating a DateFormatter is
+    /// expensive, and rowSubtitle runs for every row on every render — without this, lists
+    /// janked while scrolling and typing. Called on the main thread (SwiftUI rendering) only.
+    private static var formatterCache: [String: DateFormatter] = [:]
+    static func cachedFormatter(_ format: String) -> DateFormatter {
+        let key = L10n.locale.identifier + "\u{1}" + format
+        if let f = formatterCache[key] { return f }
+        let f = DateFormatter()
+        f.locale = L10n.locale
+        f.dateFormat = format
+        if format.contains("a") { f.amSymbol = "AM"; f.pmSymbol = "PM" }
+        formatterCache[key] = f
+        return f
+    }
+
     static func summary(start: Date?, end: Date?, isAllDay: Bool, hasTime: Bool, calendar: Calendar = .current) -> String? {
         guard let start else { return nil }
         let now = Date()
@@ -59,14 +74,7 @@ enum DateFormatting {
             return dayString
         }
 
-        let timeFmt = DateFormatter()
-        timeFmt.locale = L10n.locale
-        if L10n.uses24Hour {
-            timeFmt.dateFormat = "HH:mm"
-        } else {
-            timeFmt.dateFormat = "h:mm a"
-            timeFmt.amSymbol = "AM"; timeFmt.pmSymbol = "PM"
-        }
+        let timeFmt = cachedFormatter(L10n.uses24Hour ? "HH:mm" : "h:mm a")
 
         if let end {
             // Event with a range.
@@ -93,17 +101,16 @@ enum DateFormatting {
         case 1: return L("Tomorrow", "明天", "明日")
         case -1: return L("Yesterday", "昨天", "昨日")
         case 2...6:
-            let f = DateFormatter(); f.locale = L10n.locale; f.dateFormat = "EEEE"
-            return f.string(from: date)
+            return cachedFormatter("EEEE").string(from: date)
         default:
-            let f = DateFormatter(); f.locale = L10n.locale
             let sameYear = calendar.component(.year, from: date) == calendar.component(.year, from: now)
+            let fmt: String
             if L10n.lang == .en {
-                f.dateFormat = sameYear ? "EEE, MMM d" : "MMM d, yyyy"
+                fmt = sameYear ? "EEE, MMM d" : "MMM d, yyyy"
             } else {
-                f.dateFormat = sameYear ? "M月d日" : "yyyy年M月d日"
+                fmt = sameYear ? "M月d日" : "yyyy年M月d日"
             }
-            return f.string(from: date)
+            return cachedFormatter(fmt).string(from: date)
         }
     }
 
