@@ -43,10 +43,24 @@ enum LivePanelSelfTest {
         もう一行。
         """
 
-        // 1) Open the real panel via the real show() path.
+        // 1) Open the real panel via the real show() path — and time it (you open it constantly,
+        //    so open latency is central to whether the app "feels laggy").
+        let tShow = Date()
         panel.show(mode: .add)
+        let showMs = Date().timeIntervalSince(tShow) * 1000
         spin(0.25)
+        log("    panel opened in \(Int(showMs)) ms")
         check(panel.isVisible, "real panel opened")
+        check(showMs < 400, "panel opens promptly")
+        // Reopen a few times — a regression here would show as climbing times.
+        var reopenMax = 0.0
+        for _ in 0..<3 {
+            panel.hide(); spin(0.05)
+            let t = Date(); panel.show(mode: .add); reopenMax = max(reopenMax, Date().timeIntervalSince(t) * 1000)
+            spin(0.08)
+        }
+        log("    worst reopen \(Int(reopenMax)) ms")
+        check(reopenMax < 400, "reopening stays fast")
 
         // 2) Paste the blob into the live panel. If sizeThatFits still looped, the runloop spin
         //    below would never settle and the external watchdog would kill us.
