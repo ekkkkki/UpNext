@@ -297,12 +297,12 @@ final class EventKitService: ObservableObject {
         let startOfToday = cal.startOfDay(for: now)
         guard let endOfToday = cal.date(byAdding: .day, value: 1, to: startOfToday) else { return [] }
         var hits: [SearchHit] = []
-        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal)
+        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal, incompleteOnly: true)
         hits += reminders.filter { h in
             guard !h.isCompleted, let d = h.date else { return false }
             return d < endOfToday // overdue or due today
         }
-        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal)
+        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal, window: (startOfToday, endOfToday))
         hits += events.filter { h in
             guard let d = h.date else { return false }
             // Today's events, excluding ones that have already ended.
@@ -317,7 +317,7 @@ final class EventKitService: ObservableObject {
         let startOfToday = cal.startOfDay(for: now)
         guard let end = cal.date(byAdding: .day, value: days, to: startOfToday) else { return [] }
         var hits: [SearchHit] = []
-        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal)
+        let reminders = await fetchReminders(query: SearchQuery(), now: now, cal: cal, incompleteOnly: true)
         // Dated reminders: overdue + due within the window.
         hits += reminders.filter { h in
             guard !h.isCompleted, let d = h.date else { return false }
@@ -331,7 +331,7 @@ final class EventKitService: ObservableObject {
             .prefix(25)
         hits += undated
         // Events: today + within the window, excluding ones that have already ended.
-        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal)
+        let events = fetchEvents(query: SearchQuery(), now: now, cal: cal, window: (startOfToday, end))
         hits += events.filter { h in
             guard let d = h.date else { return false }
             return d >= startOfToday && d < end && (h.endDate ?? d) >= now
@@ -355,9 +355,14 @@ final class EventKitService: ObservableObject {
         return Array(sorted.prefix(limit))
     }
 
-    private func fetchReminders(query: SearchQuery, now: Date, cal: Calendar) async -> [SearchHit] {
+    private func fetchReminders(query: SearchQuery, now: Date, cal: Calendar, incompleteOnly: Bool = false) async -> [SearchHit] {
         guard remindersAuthorized else { return [] }
-        let predicate = store.predicateForReminders(in: nil)
+        // The glances only show incomplete items, so fetch incomplete-only there — it skips every
+        // completed reminder (often the bulk of an account) and is far faster. Search keeps the
+        // full set so `is:done` still works.
+        let predicate = incompleteOnly
+            ? store.predicateForIncompleteReminders(withDueDateStarting: nil, ending: nil, calendars: nil)
+            : store.predicateForReminders(in: nil)
         let reminders: [EKReminder] = await withCheckedContinuation { cont in
             store.fetchReminders(matching: predicate) { cont.resume(returning: $0 ?? []) }
         }
@@ -381,10 +386,12 @@ final class EventKitService: ObservableObject {
         }
     }
 
-    private func fetchEvents(query: SearchQuery, now: Date, cal: Calendar) -> [SearchHit] {
+    private func fetchEvents(query: SearchQuery, now: Date, cal: Calendar, window: (start: Date, end: Date)? = nil) -> [SearchHit] {
         guard calendarAuthorized else { return [] }
-        let start = cal.date(byAdding: .day, value: -180, to: now) ?? now
-        let end = cal.date(byAdding: .day, value: 540, to: now) ?? now
+        // Glances need only a narrow window (today … +N days); search needs a wide one. A narrow
+        // predicate makes EventKit scan far fewer events on every panel open.
+        let start = window?.start ?? (cal.date(byAdding: .day, value: -180, to: now) ?? now)
+        let end = window?.end ?? (cal.date(byAdding: .day, value: 540, to: now) ?? now)
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         return store.events(matching: predicate).map { e in
             SearchHit(
